@@ -32,8 +32,8 @@ function startMockTicker() {
         const mockSet = Math.floor(tick / 1200) % 4;
         if (repsDisplay) repsDisplay.textContent = mockRep + '/10';
         if (setsDisplay) setsDisplay.textContent = mockSet + '/3';
-        if (exCardReps) exCardReps.textContent = 'REPS: ' + mockRep + '/10';
-        if (exCardSets) exCardSets.textContent = 'SETS: ' + mockSet + '/3';
+        if (exCardReps) exCardReps.textContent = mockRep + '/10';
+        if (exCardSets) exCardSets.textContent = mockSet + '/3';
         if (progressBar) progressBar.style.width = Math.round(((mockSet * 10 + mockRep) / 30) * 100) + '%';
     }, 16); // ~60fps tick
 }
@@ -48,6 +48,10 @@ const statusText    = document.getElementById('status-text');
 const statusDot     = document.getElementById('status-dot');
 const progressBar   = document.getElementById('progress-bar');
 const progressLabel = document.getElementById('progress-label');
+const trackingQualityEl = document.getElementById('tracking-quality');
+const trackingQualityText = document.getElementById('tracking-quality-text');
+const legLeftBtn = document.getElementById('leg-left');
+const legRightBtn = document.getElementById('leg-right');
 
 // Form status card
 const formIcon      = document.getElementById('form-icon');
@@ -220,101 +224,253 @@ const REGISTRY = {
     ],
 };
 
+
 // ================================================================
-// KALMAN FILTER
+// TRACKING TRUST LAYER
+// Working-leg lock · One Euro smoothing · quality gate · outlier rejection
 // ================================================================
-class KF1D {
-    // Stronger smoothing for webcam rehab use.
-    // MediaPipe landmarks can jitter when legs overlap or lighting is uneven.
-    constructor(R=0.035,Q=0.012){this.R=R;this.Q=Q;this.x=null;this.p=1;}
-    filter(z){
-        if(this.x===null){this.x=z;return z;}
-        this.p+=this.Q;
-        const K=this.p/(this.p+this.R);
-        this.x+=K*(z-this.x);
-        this.p*=(1-K);
-        return this.x;
+class LowPassFilter {
+    constructor(){ this.initialized = false; this.y = 0; }
+    filter(value, alpha){
+        if(!this.initialized){ this.initialized = true; this.y = value; return value; }
+        this.y = alpha * value + (1 - alpha) * this.y;
+        return this.y;
     }
-    reset(){this.x=null;this.p=1;}
+    reset(){ this.initialized = false; this.y = 0; }
 }
-const KF={};
-['hip','knee','ankle','shoulder','foot'].forEach(n=>{KF[n]={x:new KF1D(),y:new KF1D()};});
-// ================================================================
-// LEG SIDE LOCK + LANDMARK SELECTION
-// ================================================================
-// Original version always used LEFT landmarks: hip 23, knee 25, ankle 27.
-// In side-view rehab videos, MediaPipe often swaps left/right legs or prefers
-// the clearer leg. We choose the clearer side when calibration starts, then
-// lock that side for the session so joints stop jumping between legs.
-const SIDE_LM = {
-    left:  { shoulder:11, hip:23, knee:25, ankle:27, foot:31 },
-    right: { shoulder:12, hip:24, knee:26, ankle:28, foot:32 }
+
+class OneEuroFilter {
+    constructor(freq = 30, minCutoff = 0.7, beta = 0.018, dCutoff = 1.0){
+        this.freq = freq;
+        this.minCutoff = minCutoff;
+        this.beta = beta;
+        this.dCutoff = dCutoff;
+        this.xFilter = new LowPassFilter();
+        this.dxFilter = new LowPassFilter();
+        this.lastRaw = null;
+        this.lastTime = null;
+    }
+    alpha(cutoff){
+        const te = 1.0 / this.freq;
+        const tau = 1.0 / (2 * Math.PI * cutoff);
+        return 1.0 / (1.0 + tau / te);
+    }
+    filter(value, timestamp = performance.now()){
+        if(this.lastTime !== null){
+            const dt = Math.max(0.001, (timestamp - this.lastTime) / 1000);
+            this.freq = 1 / dt;
+        }
+        const dx = this.lastRaw === null ? 0 : (value - this.lastRaw) * this.freq;
+        const edx = this.dxFilter.filter(dx, this.alpha(this.dCutoff));
+        const cutoff = this.minCutoff + this.beta * Math.abs(edx);
+        const result = this.xFilter.filter(value, this.alpha(cutoff));
+        this.lastRaw = value;
+        this.lastTime = timestamp;
+        return result;
+    }
+    reset(){
+        this.xFilter.reset();
+        this.dxFilter.reset();
+        this.lastRaw = null;
+        this.lastTime = null;
+    }
+}
+
+const LEG_IDX = {
+    left:  { shoulder: 11, hip: 23, knee: 25, ankle: 27, foot: 31 },
+    right: { shoulder: 12, hip: 24, knee: 26, ankle: 28, foot: 32 }
 };
 
-let trackedSide = localStorage.getItem('rehabTrackedSide') || 'left';
-let sideLocked = false;
-let lastPoseLandmarks = null;
+let workingLeg = localStorage.getItem('rehabWorkingLeg') || 'left';
+let lockedLeg = workingLeg;
+let lastTrackingScore = 0;
+let lastTrackingReason = 'Checking…';
+let lastGoodPts = null;
+let lastGoodAngle = null;
+let badTrackingFrames = 0;
+let goodTrackingFrames = 0;
+let lastQualityUIUpdate = 0;
 
-function landmarkSafe(raw, idx) {
-    return raw && raw[idx] ? raw[idx] : { x:0, y:0, visibility:0 };
+const landmarkFilters = {};
+['hip','knee','ankle','shoulder','foot'].forEach(name => {
+    landmarkFilters[name] = {
+        x: new OneEuroFilter(30, 0.72, 0.018, 1.0),
+        y: new OneEuroFilter(30, 0.72, 0.018, 1.0),
+    };
+});
+const angleFilter = new OneEuroFilter(30, 0.9, 0.018, 1.0);
+const velocityFilter = new OneEuroFilter(30, 1.2, 0.02, 1.0);
+
+function rawLM(raw, name, leg = lockedLeg) {
+    const idx = LEG_IDX[leg]?.[name] ?? LEG_IDX.left[name];
+    const r = raw[idx];
+    return { x: r.x, y: r.y, z: r.z || 0, visibility: r.visibility ?? 1 };
 }
 
-function sideScore(raw, side) {
-    const ids = SIDE_LM[side];
-    const hip = landmarkSafe(raw, ids.hip);
-    const knee = landmarkSafe(raw, ids.knee);
-    const ankle = landmarkSafe(raw, ids.ankle);
-    const foot = landmarkSafe(raw, ids.foot);
-
-    // Visibility is the main signal. Add small geometry penalties to avoid
-    // selecting a folded/occluded side when both legs are partially visible.
-    const vis = (hip.visibility + knee.visibility + ankle.visibility + foot.visibility) / 4;
-    const legLen = Math.hypot((hip.x-knee.x), (hip.y-knee.y)) + Math.hypot((knee.x-ankle.x), (knee.y-ankle.y));
-    const visibleLengthBonus = Math.min(0.25, legLen * 0.22);
-
-    return vis + visibleLengthBonus;
+function fLM(raw, name) {
+    const r = rawLM(raw, name, lockedLeg);
+    const filters = landmarkFilters[name];
+    if (!filters) return r;
+    const now = performance.now();
+    return {
+        x: filters.x.filter(r.x, now),
+        y: filters.y.filter(r.y, now),
+        z: r.z || 0,
+        visibility: r.visibility ?? 1,
+    };
 }
 
-function bestVisibleSide(raw) {
-    const leftScore = sideScore(raw, 'left');
-    const rightScore = sideScore(raw, 'right');
-    return rightScore > leftScore ? 'right' : 'left';
+function getWorkingLegPoints(raw, smoothed = true) {
+    const getter = smoothed ? fLM : rawLM;
+    return {
+        shoulder: getter(raw, 'shoulder'),
+        hip: getter(raw, 'hip'),
+        knee: getter(raw, 'knee'),
+        ankle: getter(raw, 'ankle'),
+        foot: getter(raw, 'foot')
+    };
 }
 
-function maybeUpdateTrackedSide(raw) {
-    if (!raw || sideLocked) return;
+function dist2(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
-    const best = bestVisibleSide(raw);
-    const currentScore = sideScore(raw, trackedSide);
-    const bestScore = sideScore(raw, best);
+function evaluateTrackingQuality(raw) {
+    const pts = getWorkingLegPoints(raw, false);
+    const required = [pts.hip, pts.knee, pts.ankle];
+    const avgVis = required.reduce((sum, p) => sum + (p.visibility ?? 0), 0) / required.length;
+    let score = Math.round(avgVis * 100);
+    const reasons = [];
 
-    // Only switch before calibration if the other side is clearly better.
-    if (best !== trackedSide && bestScore > currentScore + 0.12) {
-        trackedSide = best;
-        localStorage.setItem('rehabTrackedSide', trackedSide);
-        resetKF();
+    if (avgVis < 0.45) reasons.push('show hip, knee, ankle');
+    if (required.some(p => p.x < -0.04 || p.x > 1.04 || p.y < -0.04 || p.y > 1.04)) {
+        score -= 18;
+        reasons.push('body partly out of frame');
     }
+
+    const hk = dist2(pts.hip, pts.knee);
+    const ka = dist2(pts.knee, pts.ankle);
+    if (hk < 0.04 || ka < 0.04) {
+        score -= 25;
+        reasons.push('leg landmarks collapsed');
+    }
+    if (hk > 0.65 || ka > 0.65) {
+        score -= 15;
+        reasons.push('camera too close / distorted');
+    }
+
+    let rawAngle = null;
+    if (avgVis > 0.25 && hk > 0.02 && ka > 0.02) {
+        rawAngle = angle3(pts.hip, pts.knee, pts.ankle);
+        if (rawAngle < 5 || rawAngle > 178) score -= 6;
+        if (lastGoodAngle !== null) {
+            const jump = Math.abs(rawAngle - lastGoodAngle);
+            if (jump > 45) {
+                score -= 35;
+                reasons.push('angle jumped');
+            } else if (jump > 28) {
+                score -= 18;
+                reasons.push('angle unstable');
+            }
+        }
+    } else {
+        score -= 20;
+        reasons.push('angle unavailable');
+    }
+
+    if (lastGoodPts) {
+        const kneeJump = dist2(pts.knee, lastGoodPts.knee);
+        const ankleJump = dist2(pts.ankle, lastGoodPts.ankle);
+        const hipJump = dist2(pts.hip, lastGoodPts.hip);
+        if (kneeJump > 0.18 || ankleJump > 0.22 || hipJump > 0.16) {
+            score -= 30;
+            reasons.push('joint teleport');
+        }
+    }
+
+    score = Math.max(0, Math.min(100, score));
+    return {
+        score,
+        ok: score >= 58,
+        rawAngle,
+        pts,
+        reason: reasons.length ? reasons[0] : 'good tracking'
+    };
 }
 
-function lockBestSideForCalibration() {
-    if (!lastPoseLandmarks) return;
-    trackedSide = bestVisibleSide(lastPoseLandmarks);
-    localStorage.setItem('rehabTrackedSide', trackedSide);
-    sideLocked = true;
+function updateTrackingQualityUI(score = lastTrackingScore, reason = lastTrackingReason) {
+    const now = performance.now();
+    if (now - lastQualityUIUpdate < 120) return;
+    lastQualityUIUpdate = now;
+
+    lastTrackingScore = score;
+    lastTrackingReason = reason;
+
+    if (!trackingQualityEl || !trackingQualityText) return;
+
+    trackingQualityEl.classList.remove('good', 'warn', 'bad');
+    if (score >= 75) trackingQualityEl.classList.add('good');
+    else if (score >= 55) trackingQualityEl.classList.add('warn');
+    else trackingQualityEl.classList.add('bad');
+
+    trackingQualityText.textContent = `${score}% · ${reason}`;
+}
+
+function drawSmoothedWorkingLeg(pts) {
+    if (!pts) return;
+    ctx.save();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(45, 212, 191, 0.95)';
+    ctx.fillStyle = '#38BDF8';
+    ctx.shadowColor = 'rgba(56,189,248,0.55)';
+    ctx.shadowBlur = 8;
+    const chain = [pts.hip, pts.knee, pts.ankle, pts.foot];
+    ctx.beginPath();
+    chain.forEach((p, i) => {
+        const x = p.x * canvasEl.width;
+        const y = p.y * canvasEl.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    chain.forEach(p => {
+        const x = p.x * canvasEl.width;
+        const y = p.y * canvasEl.height;
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#061D24';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+    ctx.restore();
+}
+
+function resetKF(){
+    Object.values(landmarkFilters).forEach(f => { f.x.reset(); f.y.reset(); });
+    angleFilter.reset();
+    velocityFilter.reset();
+    lastGoodPts = null;
+    lastGoodAngle = null;
+    badTrackingFrames = 0;
+    goodTrackingFrames = 0;
+}
+
+function setWorkingLeg(leg) {
+    workingLeg = leg === 'right' ? 'right' : 'left';
+    lockedLeg = workingLeg;
+    localStorage.setItem('rehabWorkingLeg', workingLeg);
+    legLeftBtn?.classList.toggle('active', workingLeg === 'left');
+    legRightBtn?.classList.toggle('active', workingLeg === 'right');
     resetKF();
+    updateTrackingQualityUI(0, `${workingLeg} leg selected`);
 }
 
-function unlockSideForSetup() {
-    sideLocked = false;
-}
-
-function fLM(raw,name){
-    const idx = SIDE_LM[trackedSide]?.[name] ?? SIDE_LM.left[name];
-    const r=landmarkSafe(raw, idx);
-    return{x:KF[name].x.filter(r.x),y:KF[name].y.filter(r.y),visibility:r.visibility};
-}
-function resetKF(){Object.values(KF).forEach(f=>{f.x.reset();f.y.reset();});}
-
+legLeftBtn?.addEventListener('click', () => setWorkingLeg('left'));
+legRightBtn?.addEventListener('click', () => setWorkingLeg('right'));
+setWorkingLeg(workingLeg);
 // ================================================================
 // ENGINE STATE
 // ================================================================
@@ -339,12 +495,8 @@ let velHist=[],lagCnt=0,lastSpoken='',frameCnt=0,sigLostFr=0;
 // Session accumulators
 let sxPeakRom=0,sxMinRom=999,sxCompLog={hipHike:0,trunkLean:0,limbInst:0};
 let sxTotalFr=0,sxRepLog=[],sxCompTags=[];
-const CAL_MS=3000;
-// Calibration needs stability, but webcam pose landmarks jitter. The old
-// 4-degree threshold was too strict and prevented calibration even when the
-// user was holding still.
-const CAL_WIN=28,CAL_THR=12,CAL_THR_LR=18;
-const CONF=0.55,SIG_FR=18,SKIP=2;
+const CAL_MS=2500,CAL_WIN=18,CAL_THR=10,CAL_THR_LR=16;
+const CONF=0.52,SIG_FR=12,SKIP=2;
 
 // ================================================================
 // SIGNAL TOAST (non-blocking)
@@ -472,7 +624,6 @@ function loadExercise(ex){
     if(exThumb) exThumb.textContent=ex.thumb||'🦵';
     // Reset cal
     calState='idle'; calStep=0; resetCalRing();
-    unlockSideForSetup();
     btnCal.textContent='START CALIBRATION';
     updateStatus('READY','ready');
     lagCnt=0;
@@ -584,7 +735,6 @@ function readInputs(){
 // ================================================================
 function resetSession(){
     readInputs();
-    sideLocked = true;
     repCount=0; setCount=0;
     phase='straight'; phaseStart=null; lastPhaseSpoken='';
     initHipX=null; initHipY=null;
@@ -697,7 +847,6 @@ function finishCal(){
 // CALIBRATION BUTTON
 btnCal.addEventListener('click',()=>{
     if(!currentEx)return;
-    lockBestSideForCalibration();
     calStep=0; resetCalRing(); lastSpoken='';
     const ex=currentEx;
     if(!ex.calBoth||ex.legRaise){
@@ -864,7 +1013,6 @@ btnSumDismiss.addEventListener('click',()=>summaryOverlay.classList.add('hidden'
 btnSumRestart.addEventListener('click',()=>{
     summaryOverlay.classList.add('hidden');
     calState='idle'; calStep=0; resetCalRing();
-    unlockSideForSetup();
     btnCal.textContent='START CALIBRATION';
     updateStatus('READY','ready');
     resetSession();
@@ -874,6 +1022,7 @@ btnSumRestart.addEventListener('click',()=>{
 // ================================================================
 // MAIN POSE LOOP
 // ================================================================
+
 function onResults(results){
     if(!results.poseLandmarks)return;
     frameCnt++;
@@ -883,43 +1032,77 @@ function onResults(results){
     ctx.drawImage(results.image,0,0,canvasEl.width,canvasEl.height);
 
     const lm=results.poseLandmarks;
-    lastPoseLandmarks = lm;
-    maybeUpdateTrackedSide(lm);
-    drawConnectors(ctx,lm,POSE_CONNECTIONS,{color:'rgba(41,182,246,0.3)',lineWidth:2});
-    drawLandmarks(ctx,lm,{color:'rgba(41,182,246,0.5)',lineWidth:1,radius:3});
 
-    if(currentEx){
-        const hi=[lm[currentEx.lm.p1],lm[currentEx.lm.p2],lm[currentEx.lm.p3]];
-        drawLandmarks(ctx,hi,{color:'#29B6F6',lineWidth:2,radius:7});
+    // Draw the full raw skeleton very faintly, then draw the trusted working leg boldly.
+    drawConnectors(ctx,lm,POSE_CONNECTIONS,{color:'rgba(41,182,246,0.10)',lineWidth:1});
+    drawLandmarks(ctx,lm,{color:'rgba(41,182,246,0.14)',lineWidth:1,radius:2});
+
+    if(!currentEx){ ctx.restore(); return; }
+
+    const quality = evaluateTrackingQuality(lm);
+    const acceptFrame = quality.ok;
+
+    if (acceptFrame) {
+        badTrackingFrames = 0;
+        goodTrackingFrames++;
+    } else {
+        badTrackingFrames++;
+        goodTrackingFrames = Math.max(0, goodTrackingFrames - 1);
     }
 
-    const fHip=fLM(lm,'hip'),fKnee=fLM(lm,'knee'),fAnkle=fLM(lm,'ankle'),fSh=fLM(lm,'shoulder');
-    const kx=fKnee.x*canvasEl.width, ky=fKnee.y*canvasEl.height;
+    updateTrackingQualityUI(quality.score, quality.reason);
+    showSignalToast(badTrackingFrames >= SIG_FR);
+
+    // If the frame is not trustworthy, keep last good points instead of letting joints teleport.
+    let pts = null;
+    let angle = lastGoodAngle;
+    const prevAngleForVelocity = lastGoodAngle;
+
+    if (acceptFrame) {
+        pts = getWorkingLegPoints(lm, true);
+        const measuredAngle = angle3(pts.hip, pts.knee, pts.ankle);
+        angle = Math.round(angleFilter.filter(measuredAngle));
+        lastGoodPts = pts;
+        lastGoodAngle = angle;
+    } else if (lastGoodPts) {
+        pts = lastGoodPts;
+    }
+
+    if (pts) drawSmoothedWorkingLeg(pts);
+
+    const fHip = pts?.hip;
+    const fKnee = pts?.knee;
+    const fAnkle = pts?.ankle;
+    const fSh = pts?.shoulder || rawLM(lm, 'shoulder', lockedLeg);
+
+    const kx = (fKnee?.x ?? 0.5) * canvasEl.width;
+    const ky = (fKnee?.y ?? 0.5) * canvasEl.height;
 
     if(calState==='waiting_pos1'||calState==='waiting_pos2'){
-        if(fKnee.visibility>0.5)drawCalRing(kx,ky);
+        if(pts && quality.score >= 58) drawCalRing(kx,ky);
     }
     ctx.restore();
 
-    if(!currentEx)return;
-
-    // Confidence gate
-    const vis=Math.min(fHip.visibility,fKnee.visibility,fAnkle.visibility);
-    if(vis<CONF){
-        sigLostFr++;
-        if(sigLostFr>=SIG_FR) showSignalToast(true);
-        if(!DEV_MODE) return;   // only freeze tracking in production
-    } else {
-        sigLostFr=0;
-        showSignalToast(false);
+    if(!pts || angle === null || angle === undefined){
+        if(!DEV_MODE) return;
     }
 
-    // Limb swap guard
-    if(limbSwapped(fHip,fKnee,fAnkle,fSh)){sxCompLog.limbInst++;return;}
+    // Confidence gate: for calibration/exercise, use quality score instead of raw visibility only.
+    if(!acceptFrame){
+        if (calState==='waiting_pos1' || calState==='waiting_pos2') {
+            updateStatus('TRACKING UNSTABLE','warn');
+            resetCalRing();
+        }
+        if(!DEV_MODE) return;
+    }
+
+    if(limbSwapped(fHip,fKnee,fAnkle,fSh)){
+        sxCompLog.limbInst++;
+        updateTrackingQualityUI(Math.min(lastTrackingScore, 45), 'leg geometry unstable');
+        return;
+    }
     if(romFrozen)return;
 
-    const angle=angle3(fHip,fKnee,fAnkle);
-    const prevAngleForVel = lastAngle;
     lastAngle=angle;
     updateRomPatientUI(angle);
 
@@ -933,14 +1116,18 @@ function onResults(results){
 
     // Hip flex for SLR
     let hipFlex=null;
-    if(currentEx.hipFlex){
-        const sh=fLM(lm,'shoulder');
-        if(sh.visibility>0.6&&fHip.visibility>0.6&&fKnee.visibility>0.6)
-            hipFlex=angle3(sh,fHip,fKnee);
+    if(currentEx.hipFlex && fSh && fSh.visibility>0.35&&fHip.visibility>0.35&&fKnee.visibility>0.35) {
+        hipFlex=angle3(fSh,fHip,fKnee);
     }
 
-    // Calibration
+    // Calibration only counts down when tracking is stable for several frames.
     if(calState==='waiting_pos1'||calState==='waiting_pos2'){
+        if (quality.score < 65 || goodTrackingFrames < 8) {
+            updateStatus('HOLD STILL','cal');
+            resetCalRing();
+            return;
+        }
+        updateStatus('CALIBRATING','cal');
         runAutoCal(angle,kx,ky);
         return;
     }
@@ -978,11 +1165,13 @@ function onResults(results){
 
     updateHistoryWarnings();
 
-    // Velocity
+    // Velocity: compare current smoothed angle against previous angle before updating.
     const now=performance.now();
     const dt=(now-lastVelT)/1000;
     if(dt>0.18){
-        velHist.push(Math.abs((angle-prevAngleForVel)/dt));
+        const delta = prevAngleForVelocity !== null ? Math.abs(angle - prevAngleForVelocity) : 0;
+        const instantVel = Math.abs(delta / dt);
+        velHist.push(velocityFilter.filter(instantVel));
         if(velHist.length>6)velHist.shift();
         const avg=velHist.reduce((a,b)=>a+b,0)/velHist.length;
         updateVelBand(avg);
@@ -1012,7 +1201,12 @@ function onResults(results){
 // MEDIAPIPE
 // ================================================================
 const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
-pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:0.6,minTrackingConfidence:0.65});
+pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    minDetectionConfidence: 0.55,
+    minTrackingConfidence: 0.55
+});
 pose.onResults(onResults);
 
 window.addEventListener('load',async()=>{
@@ -1476,7 +1670,7 @@ const resizeHandle = document.getElementById('sidebar-resize-handle');
 
 function clampSidebarWidth(width) {
     const MIN_SIDEBAR = 320;
-    const MAX_SIDEBAR = 620;
+    const MAX_SIDEBAR = 560;
 
     return Math.min(
         MAX_SIDEBAR,
@@ -1484,16 +1678,13 @@ function clampSidebarWidth(width) {
     );
 }
 
+
 function updateSidebarScale(width) {
-    let scale = 1;
+    let scale = 0.86;
 
-    if (width >= 620) {
-        scale = 1.14;
-    }
-
-    if (width >= 700) {
-        scale = 1.24;
-    }
+    if (width >= 380) scale = 0.9;
+    if (width >= 440) scale = 0.96;
+    if (width >= 500) scale = 1.0;
 
     document.documentElement.style.setProperty('--sidebar-scale', String(scale));
 }

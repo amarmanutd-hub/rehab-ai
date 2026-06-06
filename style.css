@@ -2204,3 +2204,308 @@ body[data-view-mode="pt"] #module-exercise .pt-exercise-selector {
 body[data-view-mode="patient"] #btn-test-summary {
   display: none !important;
 }
+
+/* ================================================================
+   PHASE 1 TRACKING + COMPACT UX PATCH
+   Working-leg selector · tracking quality · less scrolling
+   ================================================================ */
+:root {
+  --topbar-h: 82px;
+  --sidebar-w: 360px;
+  --sidebar-scale: 0.86;
+}
+
+.topbar {
+  gap: 16px;
+  padding: 0 20px;
+}
+
+.tb-logo {
+  width: 44px;
+  height: 44px;
+  font-size: 1.12rem;
+}
+
+.tb-name {
+  font-size: 1.55rem;
+}
+
+.tb-status-lbl,
+.status-val,
+.progress-lbl {
+  font-size: 0.82rem;
+}
+
+.progress-track {
+  height: 10px;
+}
+
+.tracking-quality {
+  height: 36px;
+  min-width: 172px;
+  max-width: 220px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-sec);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tracking-quality #tracking-quality-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tracking-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--warn);
+  flex-shrink: 0;
+}
+
+.tracking-quality.good .tracking-dot { background: var(--success); }
+.tracking-quality.warn .tracking-dot { background: var(--warn); }
+.tracking-quality.bad .tracking-dot { background: var(--danger); }
+
+.leg-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  flex-shrink: 0;
+}
+
+.leg-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--text-sec);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.leg-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #FFFFFF;
+}
+
+.mode-toggle {
+  padding: 3px;
+}
+
+.mode-btn {
+  padding: 8px 11px;
+  font-size: 0.8rem;
+}
+
+.theme-toggle {
+  min-width: 76px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+.video-panel {
+  margin: 14px;
+  border-radius: 18px;
+}
+
+.resize-handle {
+  width: 10px;
+}
+
+.sidebar {
+  gap: 9px;
+  padding: 14px 14px 14px 0;
+}
+
+.dash-card,
+.card {
+  padding: 9px 11px;
+  border-radius: 14px;
+}
+
+.card-title {
+  font-size: calc(0.76rem * var(--sidebar-scale));
+  margin-bottom: 7px;
+}
+
+.form-grid {
+  grid-template-columns: minmax(98px, 1fr) 74px 74px;
+  gap: 8px;
+}
+
+.form-icon-wrap {
+  width: 54px;
+  height: 54px;
+}
+
+.form-svg {
+  width: 52px;
+  height: 52px;
+}
+
+.form-label {
+  font-size: calc(1.55rem * var(--sidebar-scale)) !important;
+}
+
+.stat-block,
+.metric-circle {
+  width: calc(70px * var(--sidebar-scale));
+  height: calc(70px * var(--sidebar-scale));
+  min-width: 62px;
+  min-height: 62px;
+  border-width: 5px !important;
+}
+
+.hold-row {
+  margin-top: 8px;
+  padding-top: 7px;
+}
+
+.vel-band {
+  height: 30px !important;
+}
+
+.vel-band-wrap {
+  gap: 5px;
+}
+
+.acc-header {
+  min-height: 38px;
+  padding: 9px 11px;
+  font-size: calc(0.88rem * var(--sidebar-scale));
+}
+
+.acc-body {
+  padding: 0 11px 11px;
+  max-height: 560px;
+}
+
+.ex-card-inner {
+  gap: 9px;
+  margin-bottom: 9px;
+}
+
+.ex-thumb {
+  width: calc(60px * var(--sidebar-scale)) !important;
+  height: calc(60px * var(--sidebar-scale)) !important;
+  border-radius: 14px;
+  font-size: calc(1.9rem * var(--sidebar-scale)) !important;
+}
+
+.exercise-progress {
+  gap: 7px;
+  margin: 2px 0;
+}
+
+.progress-pill {
+  min-width: 64px;
+  padding: 7px 8px;
+}
+
+.rom-current-block,
+.history-row,
+.pt-review-metric,
+.active-protocol-grid > div {
+  padding: 8px 9px;
+}
+
+.rom-current-value {
+  font-size: calc(1.65rem * var(--sidebar-scale));
+}
+
+.sel-input,
+.num-inp {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.inp-group .num-inp,
+.tempo-grid .num-inp {
+  height: 40px;
+}
+
+.btn-cal,
+.btn-apply,
+.btn-push-patient,
+.btn-test-summary {
+  padding: 10px 11px;
+  border-radius: 12px;
+}
+
+#signal-overlay {
+  bottom: 38px !important;
+  padding: 8px 14px !important;
+  max-width: min(520px, 88%) !important;
+}
+
+#signal-overlay .ov-title {
+  font-size: 0.86rem !important;
+}
+
+#signal-overlay .ov-sub {
+  font-size: 0.78rem !important;
+}
+
+@media (max-width: 1250px) {
+  :root {
+    --sidebar-w: 340px;
+    --topbar-h: 76px;
+    --sidebar-scale: 0.82;
+  }
+  .tracking-quality { display: none; }
+  .tb-name { font-size: 1.35rem; }
+  .topbar { gap: 12px; padding: 0 16px; }
+}
+
+@media (max-width: 1050px) {
+  :root {
+    --sidebar-w: 320px;
+    --topbar-h: 74px;
+    --sidebar-scale: 0.78;
+  }
+  .tb-status { display: none; }
+  .leg-toggle { display: none; }
+}
+
+@media (max-width: 820px) {
+  html, body { overflow: auto; }
+  .topbar {
+    position: sticky;
+    height: auto;
+    min-height: 72px;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .layout {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 72px);
+  }
+  .video-panel {
+    min-height: 52vh;
+  }
+  .resize-handle { display: none; }
+  .sidebar {
+    width: auto !important;
+    padding: 0 14px 18px;
+  }
+}
