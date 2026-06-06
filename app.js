@@ -32,8 +32,8 @@ function startMockTicker() {
         const mockSet = Math.floor(tick / 1200) % 4;
         if (repsDisplay) repsDisplay.textContent = mockRep + '/10';
         if (setsDisplay) setsDisplay.textContent = mockSet + '/3';
-        if (exCardReps) exCardReps.textContent = mockRep + '/10';
-        if (exCardSets) exCardSets.textContent = mockSet + '/3';
+        if (exCardReps) exCardReps.textContent = 'REPS: ' + mockRep + '/10';
+        if (exCardSets) exCardSets.textContent = 'SETS: ' + mockSet + '/3';
         if (progressBar) progressBar.style.width = Math.round(((mockSet * 10 + mockRep) / 30) * 100) + '%';
     }, 16); // ~60fps tick
 }
@@ -224,7 +224,9 @@ const REGISTRY = {
 // KALMAN FILTER
 // ================================================================
 class KF1D {
-    constructor(R=0.008,Q=0.08){this.R=R;this.Q=Q;this.x=null;this.p=1;}
+    // Stronger smoothing for webcam rehab use.
+    // MediaPipe landmarks can jitter when legs overlap or lighting is uneven.
+    constructor(R=0.035,Q=0.012){this.R=R;this.Q=Q;this.x=null;this.p=1;}
     filter(z){
         if(this.x===null){this.x=z;return z;}
         this.p+=this.Q;
@@ -237,8 +239,80 @@ class KF1D {
 }
 const KF={};
 ['hip','knee','ankle','shoulder','foot'].forEach(n=>{KF[n]={x:new KF1D(),y:new KF1D()};});
-const LMIDX={hip:23,knee:25,ankle:27,shoulder:11,foot:31};
-function fLM(raw,name){const r=raw[LMIDX[name]];return{x:KF[name].x.filter(r.x),y:KF[name].y.filter(r.y),visibility:r.visibility};}
+// ================================================================
+// LEG SIDE LOCK + LANDMARK SELECTION
+// ================================================================
+// Original version always used LEFT landmarks: hip 23, knee 25, ankle 27.
+// In side-view rehab videos, MediaPipe often swaps left/right legs or prefers
+// the clearer leg. We choose the clearer side when calibration starts, then
+// lock that side for the session so joints stop jumping between legs.
+const SIDE_LM = {
+    left:  { shoulder:11, hip:23, knee:25, ankle:27, foot:31 },
+    right: { shoulder:12, hip:24, knee:26, ankle:28, foot:32 }
+};
+
+let trackedSide = localStorage.getItem('rehabTrackedSide') || 'left';
+let sideLocked = false;
+let lastPoseLandmarks = null;
+
+function landmarkSafe(raw, idx) {
+    return raw && raw[idx] ? raw[idx] : { x:0, y:0, visibility:0 };
+}
+
+function sideScore(raw, side) {
+    const ids = SIDE_LM[side];
+    const hip = landmarkSafe(raw, ids.hip);
+    const knee = landmarkSafe(raw, ids.knee);
+    const ankle = landmarkSafe(raw, ids.ankle);
+    const foot = landmarkSafe(raw, ids.foot);
+
+    // Visibility is the main signal. Add small geometry penalties to avoid
+    // selecting a folded/occluded side when both legs are partially visible.
+    const vis = (hip.visibility + knee.visibility + ankle.visibility + foot.visibility) / 4;
+    const legLen = Math.hypot((hip.x-knee.x), (hip.y-knee.y)) + Math.hypot((knee.x-ankle.x), (knee.y-ankle.y));
+    const visibleLengthBonus = Math.min(0.25, legLen * 0.22);
+
+    return vis + visibleLengthBonus;
+}
+
+function bestVisibleSide(raw) {
+    const leftScore = sideScore(raw, 'left');
+    const rightScore = sideScore(raw, 'right');
+    return rightScore > leftScore ? 'right' : 'left';
+}
+
+function maybeUpdateTrackedSide(raw) {
+    if (!raw || sideLocked) return;
+
+    const best = bestVisibleSide(raw);
+    const currentScore = sideScore(raw, trackedSide);
+    const bestScore = sideScore(raw, best);
+
+    // Only switch before calibration if the other side is clearly better.
+    if (best !== trackedSide && bestScore > currentScore + 0.12) {
+        trackedSide = best;
+        localStorage.setItem('rehabTrackedSide', trackedSide);
+        resetKF();
+    }
+}
+
+function lockBestSideForCalibration() {
+    if (!lastPoseLandmarks) return;
+    trackedSide = bestVisibleSide(lastPoseLandmarks);
+    localStorage.setItem('rehabTrackedSide', trackedSide);
+    sideLocked = true;
+    resetKF();
+}
+
+function unlockSideForSetup() {
+    sideLocked = false;
+}
+
+function fLM(raw,name){
+    const idx = SIDE_LM[trackedSide]?.[name] ?? SIDE_LM.left[name];
+    const r=landmarkSafe(raw, idx);
+    return{x:KF[name].x.filter(r.x),y:KF[name].y.filter(r.y),visibility:r.visibility};
+}
 function resetKF(){Object.values(KF).forEach(f=>{f.x.reset();f.y.reset();});}
 
 // ================================================================
@@ -261,13 +335,16 @@ let T_STR=2000,T_PEAK=3000,T_HOLD=2000,T_RET=3000;
 let maxRom=180,minRom=0,romActive=true,romFrozen=false;
 let repCount=0,setCount=0;
 let lastAngle=165,lastVelT=performance.now();
-let prevAngleForVel=null;
 let velHist=[],lagCnt=0,lastSpoken='',frameCnt=0,sigLostFr=0;
 // Session accumulators
 let sxPeakRom=0,sxMinRom=999,sxCompLog={hipHike:0,trunkLean:0,limbInst:0};
 let sxTotalFr=0,sxRepLog=[],sxCompTags=[];
-const CAL_MS=3000,CAL_WIN=15,CAL_THR=4,CAL_THR_LR=12;
-const CONF=0.85,SIG_FR=8,SKIP=2;
+const CAL_MS=3000;
+// Calibration needs stability, but webcam pose landmarks jitter. The old
+// 4-degree threshold was too strict and prevented calibration even when the
+// user was holding still.
+const CAL_WIN=28,CAL_THR=12,CAL_THR_LR=18;
+const CONF=0.55,SIG_FR=18,SKIP=2;
 
 // ================================================================
 // SIGNAL TOAST (non-blocking)
@@ -395,6 +472,7 @@ function loadExercise(ex){
     if(exThumb) exThumb.textContent=ex.thumb||'🦵';
     // Reset cal
     calState='idle'; calStep=0; resetCalRing();
+    unlockSideForSetup();
     btnCal.textContent='START CALIBRATION';
     updateStatus('READY','ready');
     lagCnt=0;
@@ -506,10 +584,11 @@ function readInputs(){
 // ================================================================
 function resetSession(){
     readInputs();
+    sideLocked = true;
     repCount=0; setCount=0;
     phase='straight'; phaseStart=null; lastPhaseSpoken='';
     initHipX=null; initHipY=null;
-    lagCnt=0; lastSpoken=''; velHist=[]; lastVelT=performance.now(); prevAngleForVel=null;
+    lagCnt=0; lastSpoken=''; velHist=[]; lastVelT=performance.now();
     romFrozen=false;
     sxPeakRom=0; sxMinRom=999;
     sxCompLog={hipHike:0,trunkLean:0,limbInst:0};
@@ -618,6 +697,7 @@ function finishCal(){
 // CALIBRATION BUTTON
 btnCal.addEventListener('click',()=>{
     if(!currentEx)return;
+    lockBestSideForCalibration();
     calStep=0; resetCalRing(); lastSpoken='';
     const ex=currentEx;
     if(!ex.calBoth||ex.legRaise){
@@ -784,6 +864,7 @@ btnSumDismiss.addEventListener('click',()=>summaryOverlay.classList.add('hidden'
 btnSumRestart.addEventListener('click',()=>{
     summaryOverlay.classList.add('hidden');
     calState='idle'; calStep=0; resetCalRing();
+    unlockSideForSetup();
     btnCal.textContent='START CALIBRATION';
     updateStatus('READY','ready');
     resetSession();
@@ -802,6 +883,8 @@ function onResults(results){
     ctx.drawImage(results.image,0,0,canvasEl.width,canvasEl.height);
 
     const lm=results.poseLandmarks;
+    lastPoseLandmarks = lm;
+    maybeUpdateTrackedSide(lm);
     drawConnectors(ctx,lm,POSE_CONNECTIONS,{color:'rgba(41,182,246,0.3)',lineWidth:2});
     drawLandmarks(ctx,lm,{color:'rgba(41,182,246,0.5)',lineWidth:1,radius:3});
 
@@ -836,6 +919,7 @@ function onResults(results){
     if(romFrozen)return;
 
     const angle=angle3(fHip,fKnee,fAnkle);
+    const prevAngleForVel = lastAngle;
     lastAngle=angle;
     updateRomPatientUI(angle);
 
@@ -897,13 +981,11 @@ function onResults(results){
     // Velocity
     const now=performance.now();
     const dt=(now-lastVelT)/1000;
-    if(prevAngleForVel===null) prevAngleForVel=angle;
     if(dt>0.18){
         velHist.push(Math.abs((angle-prevAngleForVel)/dt));
         if(velHist.length>6)velHist.shift();
         const avg=velHist.reduce((a,b)=>a+b,0)/velHist.length;
         updateVelBand(avg);
-        prevAngleForVel=angle;
         lastVelT=now;
     }
 
@@ -930,7 +1012,7 @@ function onResults(results){
 // MEDIAPIPE
 // ================================================================
 const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
-pose.setOptions({modelComplexity:0,smoothLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
+pose.setOptions({modelComplexity:1,smoothLandmarks:true,minDetectionConfidence:0.6,minTrackingConfidence:0.65});
 pose.onResults(onResults);
 
 window.addEventListener('load',async()=>{
@@ -989,14 +1071,14 @@ const MODULE_REGISTRY = {
 
 let viewMode = localStorage.getItem(STORAGE_KEYS.viewMode) || 'patient';
 
-const UI_PREF_VERSION = 'v4_compact_patient_minimal';
+const UI_PREF_VERSION = 'v3_patient_minimal';
 
 const DEFAULT_MODULE_PREFS = {
     exercise: true,
     rom: true,
     tempo: false,
     fatigue: false,
-    history: false
+    history: true
 };
 
 if (localStorage.getItem('rehabUIPrefVersion') !== UI_PREF_VERSION) {
@@ -1394,7 +1476,7 @@ const resizeHandle = document.getElementById('sidebar-resize-handle');
 
 function clampSidebarWidth(width) {
     const MIN_SIDEBAR = 320;
-    const MAX_SIDEBAR = 560;
+    const MAX_SIDEBAR = 620;
 
     return Math.min(
         MAX_SIDEBAR,
@@ -1403,18 +1485,14 @@ function clampSidebarWidth(width) {
 }
 
 function updateSidebarScale(width) {
-    let scale = 0.86;
+    let scale = 1;
 
-    if (width <= 330) {
-        scale = 0.78;
-    } else if (width <= 360) {
-        scale = 0.82;
-    } else if (width <= 400) {
-        scale = 0.86;
-    } else if (width <= 460) {
-        scale = 0.92;
-    } else if (width >= 520) {
-        scale = 1.0;
+    if (width >= 620) {
+        scale = 1.14;
+    }
+
+    if (width >= 700) {
+        scale = 1.24;
     }
 
     document.documentElement.style.setProperty('--sidebar-scale', String(scale));
@@ -1432,14 +1510,7 @@ function setSidebarWidth(width, save = false) {
 }
 
 if (resizeHandle) {
-    const SIDEBAR_VERSION = 'v4_compact_360';
     const DEFAULT_SIDEBAR = 360;
-
-    if (localStorage.getItem('rehabSidebarWidthVersion') !== SIDEBAR_VERSION) {
-        localStorage.removeItem('rehabSidebarWidth');
-        localStorage.setItem('rehabSidebarWidthVersion', SIDEBAR_VERSION);
-    }
-
     const savedWidth = parseInt(localStorage.getItem('rehabSidebarWidth'), 10);
 
     setSidebarWidth(Number.isFinite(savedWidth) ? savedWidth : DEFAULT_SIDEBAR);
