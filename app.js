@@ -10,7 +10,7 @@
 // Set to true to bypass signal-lost blocking and populate HUD with
 // mock data so you can iterate on the UI without being in front of
 // the camera. Flip back to false for clinical use.
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 // Mock data ticker — runs only when DEV_MODE is true
 function startMockTicker() {
@@ -32,8 +32,8 @@ function startMockTicker() {
         const mockSet = Math.floor(tick / 1200) % 4;
         if (repsDisplay) repsDisplay.textContent = mockRep + '/10';
         if (setsDisplay) setsDisplay.textContent = mockSet + '/3';
-        if (exCardReps) exCardReps.textContent = 'REPS: ' + mockRep + '/10';
-        if (exCardSets) exCardSets.textContent = 'SETS: ' + mockSet + '/3';
+        if (exCardReps) exCardReps.textContent = mockRep + '/10';
+        if (exCardSets) exCardSets.textContent = mockSet + '/3';
         if (progressBar) progressBar.style.width = Math.round(((mockSet * 10 + mockRep) / 30) * 100) + '%';
     }, 16); // ~60fps tick
 }
@@ -261,6 +261,7 @@ let T_STR=2000,T_PEAK=3000,T_HOLD=2000,T_RET=3000;
 let maxRom=180,minRom=0,romActive=true,romFrozen=false;
 let repCount=0,setCount=0;
 let lastAngle=165,lastVelT=performance.now();
+let prevAngleForVel=null;
 let velHist=[],lagCnt=0,lastSpoken='',frameCnt=0,sigLostFr=0;
 // Session accumulators
 let sxPeakRom=0,sxMinRom=999,sxCompLog={hipHike:0,trunkLean:0,limbInst:0};
@@ -508,7 +509,7 @@ function resetSession(){
     repCount=0; setCount=0;
     phase='straight'; phaseStart=null; lastPhaseSpoken='';
     initHipX=null; initHipY=null;
-    lagCnt=0; lastSpoken=''; velHist=[]; lastVelT=performance.now();
+    lagCnt=0; lastSpoken=''; velHist=[]; lastVelT=performance.now(); prevAngleForVel=null;
     romFrozen=false;
     sxPeakRom=0; sxMinRom=999;
     sxCompLog={hipHike:0,trunkLean:0,limbInst:0};
@@ -896,11 +897,13 @@ function onResults(results){
     // Velocity
     const now=performance.now();
     const dt=(now-lastVelT)/1000;
+    if(prevAngleForVel===null) prevAngleForVel=angle;
     if(dt>0.18){
-        velHist.push(Math.abs((angle-lastAngle)/dt));
+        velHist.push(Math.abs((angle-prevAngleForVel)/dt));
         if(velHist.length>6)velHist.shift();
         const avg=velHist.reduce((a,b)=>a+b,0)/velHist.length;
         updateVelBand(avg);
+        prevAngleForVel=angle;
         lastVelT=now;
     }
 
@@ -986,14 +989,14 @@ const MODULE_REGISTRY = {
 
 let viewMode = localStorage.getItem(STORAGE_KEYS.viewMode) || 'patient';
 
-const UI_PREF_VERSION = 'v3_patient_minimal';
+const UI_PREF_VERSION = 'v4_compact_patient_minimal';
 
 const DEFAULT_MODULE_PREFS = {
     exercise: true,
     rom: true,
     tempo: false,
     fatigue: false,
-    history: true
+    history: false
 };
 
 if (localStorage.getItem('rehabUIPrefVersion') !== UI_PREF_VERSION) {
@@ -1390,8 +1393,8 @@ if (themeToggle) {
 const resizeHandle = document.getElementById('sidebar-resize-handle');
 
 function clampSidebarWidth(width) {
-    const MIN_SIDEBAR = 500;
-    const MAX_SIDEBAR = 760;
+    const MIN_SIDEBAR = 320;
+    const MAX_SIDEBAR = 560;
 
     return Math.min(
         MAX_SIDEBAR,
@@ -1400,14 +1403,18 @@ function clampSidebarWidth(width) {
 }
 
 function updateSidebarScale(width) {
-    let scale = 1;
+    let scale = 0.86;
 
-    if (width >= 620) {
-        scale = 1.14;
-    }
-
-    if (width >= 700) {
-        scale = 1.24;
+    if (width <= 330) {
+        scale = 0.78;
+    } else if (width <= 360) {
+        scale = 0.82;
+    } else if (width <= 400) {
+        scale = 0.86;
+    } else if (width <= 460) {
+        scale = 0.92;
+    } else if (width >= 520) {
+        scale = 1.0;
     }
 
     document.documentElement.style.setProperty('--sidebar-scale', String(scale));
@@ -1425,7 +1432,14 @@ function setSidebarWidth(width, save = false) {
 }
 
 if (resizeHandle) {
-    const DEFAULT_SIDEBAR = 500;
+    const SIDEBAR_VERSION = 'v4_compact_360';
+    const DEFAULT_SIDEBAR = 360;
+
+    if (localStorage.getItem('rehabSidebarWidthVersion') !== SIDEBAR_VERSION) {
+        localStorage.removeItem('rehabSidebarWidth');
+        localStorage.setItem('rehabSidebarWidthVersion', SIDEBAR_VERSION);
+    }
+
     const savedWidth = parseInt(localStorage.getItem('rehabSidebarWidth'), 10);
 
     setSidebarWidth(Number.isFinite(savedWidth) ? savedWidth : DEFAULT_SIDEBAR);
