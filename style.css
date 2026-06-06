@@ -1,0 +1,2206 @@
+/* ================================================================
+   REHAB AI â€” style.css v6.0
+   Sports Rehab UI Â· Light/Dark Mode Â· Resizable Sidebar
+   ================================================================ */
+
+/* â”€â”€ SPORTS REHAB LIGHT THEME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+:root {
+  --bg: #F4F8FA;
+  --app-bg: #F4F8FA;
+  --surface: #FFFFFF;
+  --surface-soft: #EAF1F5;
+  --surface-strong: #DDEAF0;
+  --panel: #EEF4F7;
+
+  --topbar-bg: rgba(255, 255, 255, 0.96);
+  --video-bg: #061D24;
+
+  --primary: #0B5D6B;
+  --primary-dark: #073B45;
+  --primary-soft: #DDEFF2;
+  --accent: #00A896;
+  --accent-2: #2563EB;
+
+  --success: #15803D;
+  --success-soft: #DCFCE7;
+  --warn: #F97316;
+  --warn-soft: #FFEDD5;
+  --danger: #DC2626;
+  --danger-soft: #FEE2E2;
+
+  --text: #102A33;
+  --text-sec: #355762;
+  --text-dim: #6B7F87;
+  --text-inverse: #F8FAFC;
+
+  --border: #C9DCE3;
+  --border-strong: #9DB9C2;
+  --shadow: 0 8px 20px rgba(7, 59, 69, 0.10);
+  --shadow-soft: 0 4px 12px rgba(7, 59, 69, 0.07);
+
+  --topbar-h: 104px;
+  --sidebar-w: 500px;
+  --sidebar-scale: 1;
+
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+}
+
+/* â”€â”€ SPORTS REHAB DARK THEME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body[data-theme="dark"] {
+  --bg: #071316;
+  --app-bg: #071316;
+  --surface: #102126;
+  --surface-soft: #173139;
+  --surface-strong: #1D3A42;
+  --panel: #0C1B20;
+
+  --topbar-bg: rgba(9, 25, 30, 0.96);
+  --video-bg: #020B0E;
+
+  --primary: #38BDF8;
+  --primary-dark: #7DD3FC;
+  --primary-soft: #0E3038;
+  --accent: #2DD4BF;
+  --accent-2: #60A5FA;
+
+  --success: #22C55E;
+  --success-soft: #052E16;
+  --warn: #F97316;
+  --warn-soft: #431407;
+  --danger: #EF4444;
+  --danger-soft: #450A0A;
+
+  --text: #EAF6F8;
+  --text-sec: #B6CED5;
+  --text-dim: #7F9AA3;
+  --text-inverse: #061D24;
+
+  --border: #27444C;
+  --border-strong: #3A6570;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-soft: 0 5px 14px rgba(0, 0, 0, 0.22);
+}
+
+/* â”€â”€ RESET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font);
+  background: var(--app-bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+/* â”€â”€ TOP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: var(--topbar-h);
+  z-index: 200;
+
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+
+  display: flex;
+  align-items: center;
+  gap: 28px;
+
+  padding: 0 28px;
+
+  box-shadow: 0 2px 12px rgba(7, 59, 69, 0.05);
+}
+
+.tb-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.tb-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #FFFFFF;
+  font-weight: 900;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+
+  box-shadow: 0 7px 18px rgba(0, 168, 150, 0.24);
+}
+
+.tb-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.tb-name {
+  font-size: 2.05rem;
+  font-weight: 900;
+  color: var(--primary-dark);
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+
+.tb-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tb-status-lbl {
+  color: var(--text-sec);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.status-val {
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 0.075em;
+}
+
+.status-val.ready {
+  color: var(--primary);
+}
+
+.status-val.active {
+  color: var(--success);
+}
+
+.status-val.warn {
+  color: var(--warn);
+}
+
+.status-val.cal {
+  color: var(--accent-2);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-dot.ready {
+  background: var(--primary);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--primary), transparent 40%);
+}
+
+.status-dot.active {
+  background: var(--success);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--success), transparent 40%);
+}
+
+.status-dot.warn {
+  background: var(--warn);
+}
+
+.status-dot.cal {
+  background: var(--accent-2);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.tb-progress {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progress-lbl {
+  color: var(--text-sec);
+
+  font-size: 1rem;
+  font-weight: 800;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-track {
+  height: 14px;
+
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 999px;
+
+  transition: width 0.3s ease;
+}
+
+.theme-toggle {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  min-width: 96px;
+  height: 44px;
+
+  padding: 0 15px;
+
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 900;
+
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+}
+
+.theme-toggle-icon {
+  font-size: 1rem;
+}
+
+/* â”€â”€ MAIN LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.layout {
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  overflow: hidden;
+
+  background: var(--app-bg);
+}
+
+/* â”€â”€ VIDEO PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.video-panel {
+  flex: 1;
+  min-width: 0;
+
+  margin: 18px;
+
+  position: relative;
+  overflow: hidden;
+
+  background: var(--video-bg);
+  border: 2px solid var(--border);
+  border-radius: 22px;
+
+  box-shadow: var(--shadow);
+}
+
+video {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+
+  width: 640px;
+  height: 480px;
+
+  opacity: 0;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+  object-fit: contain;
+
+  transform: scaleX(-1);
+}
+
+/* camera corners */
+.bk {
+  position: absolute;
+
+  width: 42px;
+  height: 42px;
+
+  border: 3px solid var(--accent);
+  pointer-events: none;
+
+  opacity: 0.95;
+}
+
+.tl {
+  top: 16px;
+  left: 16px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.tr {
+  top: 16px;
+  right: 16px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.bl {
+  bottom: 16px;
+  left: 16px;
+  border-right: none;
+  border-top: none;
+}
+
+.br {
+  bottom: 16px;
+  right: 16px;
+  border-left: none;
+  border-top: none;
+}
+
+/* â”€â”€ DRAGGABLE SIDEBAR HANDLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.resize-handle {
+  width: 12px;
+  flex-shrink: 0;
+
+  cursor: col-resize;
+
+  position: relative;
+
+  background: transparent;
+}
+
+.resize-handle::before {
+  content: '';
+
+  position: absolute;
+
+  top: 22px;
+  bottom: 22px;
+  left: 50%;
+
+  width: 3px;
+
+  transform: translateX(-50%);
+
+  border-radius: 999px;
+
+  background: color-mix(in srgb, var(--primary), transparent 70%);
+
+  transition: background 0.15s ease, width 0.15s ease;
+}
+
+.resize-handle:hover::before,
+body.resizing .resize-handle::before {
+  width: 6px;
+  background: var(--accent);
+}
+
+body.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+
+  background: transparent;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  padding: 16px 18px 16px 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 7px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+/* â”€â”€ CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.dash-card,
+.card {
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  padding: 12px 14px;
+
+  box-shadow: var(--shadow-soft);
+
+  flex-shrink: 0;
+}
+
+.card-title {
+  color: var(--text-sec);
+
+  font-size: calc(0.88rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+
+  margin-bottom: 10px;
+}
+
+/* â”€â”€ FORM STATUS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.form-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border: 2px solid color-mix(in srgb, var(--primary), transparent 60%);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.2fr) 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.form-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 0;
+}
+
+.form-icon-wrap {
+  width: 74px;
+  height: 74px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-svg {
+  width: 70px;
+  height: 70px;
+
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.13));
+}
+
+.form-label {
+  margin-top: 7px;
+
+  font-size: calc(1.9rem * var(--sidebar-scale));
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+
+  text-align: center;
+}
+
+.form-label.stable {
+  color: var(--success);
+}
+
+.form-label.warn {
+  color: var(--warn);
+}
+
+.form-stats {
+  display: contents;
+}
+
+.stat-block,
+.metric-circle {
+  width: calc(96px * var(--sidebar-scale));
+  height: calc(96px * var(--sidebar-scale));
+
+  max-width: 118px;
+  max-height: 118px;
+
+  border-radius: 50%;
+  border: 8px solid color-mix(in srgb, var(--primary), transparent 70%);
+
+  background: var(--surface);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary), transparent 88%);
+}
+
+.stat-lbl,
+.metric-lbl {
+  color: var(--text-dim);
+
+  font-size: calc(0.66rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.stat-val,
+.metric-val {
+  color: var(--text);
+
+  font-family: var(--mono);
+  font-size: calc(1.12rem * var(--sidebar-scale));
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.hold-row {
+  margin-top: 12px;
+  padding-top: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-top: 1px solid var(--border);
+}
+
+.hold-lbl {
+  color: var(--text-dim);
+
+  font-size: calc(0.72rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.hold-val {
+  color: var(--text);
+
+  font-family: var(--mono);
+  font-size: calc(1rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+/* â”€â”€ VELOCITY BAND â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.vel-card {
+  background: var(--surface);
+}
+
+.vel-band-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vel-band {
+  position: relative;
+
+  height: 34px;
+
+  border-radius: 999px;
+  overflow: hidden;
+
+  background: linear-gradient(
+    to right,
+    #7F1D1D 0%,
+    #EA580C 18%,
+    #FACC15 32%,
+    #22C55E 44%,
+    #15803D 50%,
+    #22C55E 56%,
+    #FACC15 68%,
+    #EA580C 82%,
+    #7F1D1D 100%
+  );
+
+  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.22);
+}
+
+.vel-target-zone {
+  position: absolute;
+
+  left: 10%;
+  width: 20%;
+  top: 0;
+  bottom: 0;
+
+  background: rgba(255, 255, 255, 0.22);
+
+  border-left: 2px solid rgba(255, 255, 255, 0.78);
+  border-right: 2px solid rgba(255, 255, 255, 0.78);
+}
+
+.vel-marker {
+  position: absolute;
+
+  top: 3px;
+  bottom: 3px;
+
+  width: 12px;
+
+  border-radius: 999px;
+  background: var(--accent);
+
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent), transparent 30%);
+
+  transition: left 0.15s ease, background 0.15s ease;
+}
+
+.vel-scale {
+  display: flex;
+  justify-content: space-between;
+
+  color: var(--text-sec);
+
+  font-size: calc(0.76rem * var(--sidebar-scale));
+  font-weight: 800;
+}
+
+.vel-zone-lbl {
+  color: var(--success);
+  font-weight: 900;
+}
+
+/* â”€â”€ ACCORDION CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.acc-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.protocol-card {
+  border: 2px solid color-mix(in srgb, var(--primary), transparent 72%);
+}
+
+.acc-header {
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 13px 14px;
+
+  cursor: pointer;
+  user-select: none;
+
+  color: var(--primary-dark);
+
+  font-size: calc(1rem * var(--sidebar-scale));
+  font-weight: 900;
+
+  background: var(--surface-soft);
+
+  transition: background 0.15s ease;
+}
+
+.acc-header:hover {
+  background: var(--surface-strong);
+}
+
+.acc-ex-name {
+  color: var(--text-dim);
+
+  font-size: calc(0.82rem * var(--sidebar-scale));
+  font-weight: 700;
+}
+
+.acc-chev {
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  color: var(--primary-dark);
+
+  transition: transform 0.2s ease;
+}
+
+.acc-body {
+  padding: 0 14px 14px;
+
+  background: transparent;
+
+  max-height: 700px;
+  overflow: hidden;
+
+  transition: max-height 0.25s ease, padding 0.2s ease;
+}
+
+.acc-body.closed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* â”€â”€ EXERCISE CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.ex-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 12px;
+}
+
+.ex-thumb {
+  width: calc(78px * var(--sidebar-scale));
+  height: calc(78px * var(--sidebar-scale));
+
+  max-width: 100px;
+  max-height: 100px;
+
+  flex-shrink: 0;
+
+  border-radius: 18px;
+
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border: 1px solid var(--border);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: calc(2.25rem * var(--sidebar-scale));
+
+  box-shadow: var(--shadow-soft);
+}
+
+.ex-details {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ex-name {
+  color: var(--text);
+
+  font-size: calc(1.08rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+.ex-meta {
+  color: var(--text-sec);
+
+  font-size: calc(0.88rem * var(--sidebar-scale));
+  font-weight: 800;
+}
+
+.ex-meta.dim {
+  color: var(--text-dim);
+
+  font-size: calc(0.76rem * var(--sidebar-scale));
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+/* â”€â”€ INPUTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.sel-input,
+.num-inp {
+  width: 100%;
+
+  min-height: 44px;
+  padding: 10px 12px;
+
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-family: var(--font);
+  font-size: calc(0.95rem * var(--sidebar-scale));
+  font-weight: 750;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.num-inp {
+  font-family: var(--mono);
+  font-weight: 900;
+}
+
+.sel-input {
+  cursor: pointer;
+}
+
+.sel-input:focus,
+.num-inp:focus {
+  outline: none;
+
+  border-color: var(--accent);
+
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 78%);
+}
+
+/* â”€â”€ ROM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.rom-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rom-grid {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.rom-grid .inp-group:nth-child(3) {
+  grid-column: 1 / 2;
+}
+
+.inp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  flex-shrink: 0;
+}
+
+.inp-group label,
+.tg-cell label {
+  color: var(--text-sec);
+
+  font-size: calc(0.78rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inp-group .num-inp {
+  width: 116px;
+  height: 46px;
+}
+
+.rom-hint-box {
+  min-height: 74px;
+
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  padding: 11px 13px;
+
+  color: var(--text-sec);
+
+  font-size: calc(0.86rem * var(--sidebar-scale));
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* â”€â”€ TOGGLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.toggle-row {
+  margin-top: 12px;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.toggle-lbl {
+  flex: 1;
+
+  color: var(--text-sec);
+
+  font-size: calc(0.88rem * var(--sidebar-scale));
+  font-weight: 850;
+}
+
+.toggle-switch {
+  position: relative;
+
+  width: 46px;
+  height: 26px;
+
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  width: 0;
+  height: 0;
+
+  opacity: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+
+  background: var(--border-strong);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+
+  position: absolute;
+
+  width: 20px;
+  height: 20px;
+
+  left: 3px;
+  top: 3px;
+
+  background: #FFFFFF;
+  border-radius: 50%;
+
+  transition: transform 0.2s ease;
+
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.rom-status-lbl {
+  color: var(--primary-dark);
+
+  font-size: calc(0.82rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+/* â”€â”€ TEMPO GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tempo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.tg-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tempo-grid .num-inp {
+  height: 46px;
+}
+
+/* â”€â”€ BUTTONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  flex-shrink: 0;
+}
+
+.btn-cal,
+.btn-apply {
+  width: 100%;
+
+  padding: 15px 14px;
+
+  border-radius: 14px;
+
+  font-family: var(--font);
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.055em;
+
+  cursor: pointer;
+
+  transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.btn-cal {
+  background: var(--surface);
+  color: var(--primary-dark);
+
+  border: 1px solid var(--border-strong);
+}
+
+.btn-apply {
+  background: var(--primary);
+  color: #FFFFFF;
+
+  border: 1px solid var(--primary);
+
+  box-shadow: 0 7px 14px color-mix(in srgb, var(--primary), transparent 78%);
+}
+
+.btn-cal:hover,
+.btn-apply:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.btn-cal:active,
+.btn-apply:active {
+  transform: translateY(0);
+}
+
+/* â”€â”€ HISTORY CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.history-card {
+  margin-bottom: 4px;
+}
+
+.history-placeholder {
+  color: var(--text-sec);
+
+  font-size: calc(0.86rem * var(--sidebar-scale));
+  font-weight: 700;
+}
+
+/* FOOTER COMPATIBILITY */
+.footer-bar {
+  margin-top: auto;
+
+  padding: 14px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  flex-shrink: 0;
+}
+
+.footer-title {
+  display: block;
+
+  color: var(--primary-dark);
+
+  font-size: calc(0.78rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer-sub {
+  display: block;
+
+  margin-top: 4px;
+
+  color: var(--text-dim);
+
+  font-size: calc(0.78rem * var(--sidebar-scale));
+}
+
+/* â”€â”€ SIGNAL TOAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#signal-overlay {
+  position: absolute !important;
+
+  inset: auto !important;
+  bottom: 52px !important;
+  left: 50% !important;
+
+  transform: translateX(-50%) !important;
+
+  width: auto !important;
+  max-width: 560px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 10px 18px !important;
+
+  background: rgba(249, 115, 22, 0.94) !important;
+  backdrop-filter: blur(5px) !important;
+
+  border-radius: 999px !important;
+
+  z-index: 50 !important;
+
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32) !important;
+
+  pointer-events: none;
+}
+
+#signal-overlay .overlay-box {
+  padding: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  max-width: none !important;
+}
+
+#signal-overlay .ov-icon {
+  margin: 0 !important;
+
+  color: #FFFFFF !important;
+
+  font-size: 1rem !important;
+}
+
+#signal-overlay .ov-title {
+  margin: 0 !important;
+
+  color: #FFFFFF !important;
+
+  font-size: 0.82rem !important;
+  font-weight: 900 !important;
+
+  white-space: nowrap;
+}
+
+#signal-overlay .ov-sub {
+  margin: 0 !important;
+
+  color: rgba(255, 255, 255, 0.9) !important;
+
+  font-size: 0.78rem !important;
+  line-height: 1.25 !important;
+
+  white-space: nowrap;
+}
+
+/* â”€â”€ ROM FULLSCREEN OVERLAY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#rom-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 500;
+
+  background: rgba(0, 24, 32, 0.82);
+  backdrop-filter: blur(7px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-overlay.hidden,
+.hidden {
+  display: none !important;
+}
+
+.overlay-box {
+  width: 100%;
+  max-width: 390px;
+
+  padding: 2.5rem 2rem;
+
+  background: var(--surface);
+  border-radius: 20px;
+
+  text-align: center;
+
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.25);
+}
+
+.ov-icon {
+  margin-bottom: 0.8rem;
+
+  font-size: 2.75rem;
+}
+
+.ov-icon.warn {
+  color: var(--warn);
+}
+
+.ov-icon.stop {
+  color: var(--danger);
+}
+
+.ov-title {
+  margin-bottom: 0.55rem;
+
+  color: var(--text);
+
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.ov-sub {
+  margin-bottom: 1.1rem;
+
+  color: var(--text-sec);
+
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.btn-overlay {
+  padding: 12px 28px;
+
+  background: var(--primary);
+  color: #FFFFFF;
+
+  border: none;
+  border-radius: 12px;
+
+  font-weight: 900;
+  font-size: 0.95rem;
+
+  cursor: pointer;
+}
+
+.btn-overlay:hover {
+  opacity: 0.88;
+}
+
+/* â”€â”€ CLINICAL SUMMARY OVERLAY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.summary-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 600;
+
+  background: rgba(0, 24, 32, 0.88);
+  backdrop-filter: blur(8px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 1rem;
+}
+
+.sum-panel {
+  width: 100%;
+  max-width: 760px;
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  background: #0D2137;
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+
+  box-shadow: 0 0 60px rgba(45, 212, 191, 0.24);
+}
+
+.sum-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  padding: 1.1rem 1.5rem;
+
+  border-bottom: 1px solid rgba(45, 212, 191, 0.28);
+}
+
+.sum-logo {
+  color: var(--accent);
+
+  font-weight: 900;
+  font-size: 1.08rem;
+  letter-spacing: 0.06em;
+}
+
+.sum-title {
+  color: rgba(255, 255, 255, 0.76);
+
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sum-body {
+  padding: 1.3rem 1.5rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.sum-sec-lbl {
+  margin-bottom: 7px;
+
+  color: var(--accent);
+
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.sum-text {
+  color: rgba(255, 255, 255, 0.88);
+
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.sum-list {
+  padding-left: 1.1rem;
+
+  color: rgba(255, 255, 255, 0.86);
+
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.sum-list li {
+  margin-bottom: 4px;
+}
+
+.sum-textarea {
+  width: 100%;
+  min-height: 86px;
+
+  padding: 11px 13px;
+
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 12px;
+
+  color: #FFFFFF;
+
+  font-family: var(--font);
+  font-size: 0.92rem;
+
+  resize: vertical;
+}
+
+.sum-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.sum-actions {
+  display: flex;
+  gap: 10px;
+
+  padding: 1rem 1.5rem;
+
+  border-top: 1px solid rgba(45, 212, 191, 0.22);
+}
+
+.btn-sum-primary,
+.btn-sum-ghost {
+  flex: 1;
+
+  padding: 12px;
+
+  border-radius: 12px;
+
+  font-size: 0.95rem;
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+.btn-sum-primary {
+  background: var(--accent);
+  color: #061D24;
+
+  border: none;
+}
+
+.btn-sum-ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.btn-sum-primary:hover {
+  opacity: 0.88;
+}
+
+.btn-sum-ghost:hover {
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* â”€â”€ UTILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.mono {
+  font-family: var(--mono);
+}
+
+.open {
+  display: block;
+}
+
+/* â”€â”€ RESPONSIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 1250px) {
+  :root {
+    --sidebar-w: 460px;
+    --topbar-h: 94px;
+  }
+
+  .tb-name {
+    font-size: 1.75rem;
+  }
+
+  .tb-status-lbl,
+  .status-val,
+  .progress-lbl {
+    font-size: 0.9rem;
+  }
+
+  .metric-circle,
+  .stat-block {
+    width: 88px;
+    height: 88px;
+  }
+
+  .form-label {
+    font-size: 1.6rem;
+  }
+
+  .tempo-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --sidebar-w: 430px;
+    --topbar-h: 88px;
+  }
+
+  .tb-name {
+    font-size: 1.5rem;
+  }
+
+  .theme-toggle {
+    min-width: 80px;
+    height: 40px;
+    font-size: 0.82rem;
+  }
+
+  .tempo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* ================================================================
+   EXECUTIVE VS PRESCRIPTION ARCHITECTURE
+   ================================================================ */
+
+.mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  flex-shrink: 0;
+}
+
+.mode-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--text-sec);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.mode-btn:hover {
+  transform: translateY(-1px);
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #FFFFFF;
+}
+
+body[data-view-mode="patient"] .pt-prescription {
+  display: none !important;
+}
+
+body[data-view-mode="pt"] .view-settings-card {
+  display: none !important;
+}
+
+body[data-view-mode="patient"] [data-clinical-input],
+body[data-view-mode="patient"] .clinical-input {
+  pointer-events: none;
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+body[data-view-mode="patient"] select[data-clinical-input],
+body[data-view-mode="patient"] input[data-clinical-input],
+body[data-view-mode="patient"] .clinical-input {
+  background: var(--surface-soft);
+  color: var(--text-dim);
+}
+
+.prescription-builder-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--primary-soft) 100%);
+  border: 2px solid color-mix(in srgb, var(--primary), transparent 55%);
+}
+
+.prescription-copy {
+  color: var(--text-sec);
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.view-settings-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.view-settings-toggle {
+  width: 100%;
+  border: 0;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+  font-family: var(--font);
+  font-size: calc(0.95rem * var(--sidebar-scale));
+  font-weight: 900;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.view-settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 14px 14px;
+  max-height: 520px;
+  overflow: hidden;
+  transition: max-height 0.25s ease, padding 0.2s ease;
+}
+
+.view-settings-body.closed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.view-settings-note {
+  color: var(--text-dim);
+  font-size: calc(0.78rem * var(--sidebar-scale));
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.module-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: calc(0.86rem * var(--sidebar-scale));
+  font-weight: 850;
+}
+
+.module-toggle input {
+  accent-color: var(--accent);
+}
+
+.module-toggle small {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.module-toggle.mandatory {
+  opacity: 0.78;
+}
+
+.module-card {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    max-height 0.28s ease,
+    margin 0.22s ease,
+    padding 0.22s ease,
+    border-width 0.22s ease;
+}
+
+.module-card.module-hidden {
+  opacity: 0;
+  transform: translateY(-8px);
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-width: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+
+.module-card.module-forced {
+  border-color: var(--warn) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn), transparent 62%), var(--shadow-soft);
+}
+
+.module-card.module-forced::before {
+  content: 'Safety Override';
+  display: block;
+  width: fit-content;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--warn);
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vel-thresholds {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fatigue-card {
+  background: var(--surface);
+}
+
+.fatigue-plot {
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+
+.fatigue-bar {
+  flex: 1;
+  min-height: 12px;
+  border-radius: 999px 999px 4px 4px;
+  background: linear-gradient(180deg, var(--accent), var(--primary));
+  transition: height 0.25s ease;
+}
+
+.fatigue-caption {
+  margin-top: 8px;
+  color: var(--text-sec);
+  font-size: calc(0.82rem * var(--sidebar-scale));
+  font-weight: 750;
+}
+
+.btn-push-patient,
+.btn-test-summary {
+  width: 100%;
+  padding: 15px 14px;
+  border-radius: 14px;
+  font-family: var(--font);
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.btn-push-patient {
+  background: var(--accent);
+  color: #062020;
+  border: 1px solid var(--accent);
+  box-shadow: 0 7px 14px color-mix(in srgb, var(--accent), transparent 78%);
+}
+
+.btn-test-summary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.btn-push-patient:hover,
+.btn-test-summary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+
+/* ================================================================
+   PT MODE CLEAN PRESCRIPTION WORKSPACE
+   ================================================================ */
+
+/* PT does not need live patient execution cards */
+body[data-view-mode="pt"] #module-form,
+body[data-view-mode="pt"] #module-velocity,
+body[data-view-mode="pt"] #view-settings-card,
+body[data-view-mode="pt"] #module-fatigue {
+  display: none !important;
+}
+
+/* PT should see prescription and review, not patient cognitive-load controls */
+body[data-view-mode="pt"] .sidebar {
+  gap: 14px;
+}
+
+/* Patient should not see PT review dashboard */
+body[data-view-mode="patient"] #pt-review-card {
+  display: none !important;
+}
+
+.pt-review-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border: 2px solid color-mix(in srgb, var(--accent), transparent 58%);
+}
+
+.pt-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pt-review-metric {
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: 14px;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.pt-review-lbl {
+  display: block;
+  color: var(--text-dim);
+  font-size: calc(0.74rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pt-review-val {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: calc(1.1rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+.pt-review-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--text-sec);
+  font-size: calc(0.84rem * var(--sidebar-scale));
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+/* Keep fatigue visually quieter until real model exists */
+.fatigue-card {
+  opacity: 0.92;
+}
+
+.fatigue-caption {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+
+/* ================================================================
+   POLISH PASS V3 â€” PATIENT VS PT RESPONSIBILITY SPLIT
+   ================================================================ */
+
+/* Label swapping for cards that behave differently by mode */
+.pt-only-label {
+  display: none;
+}
+
+body[data-view-mode="pt"] .patient-only-label {
+  display: none;
+}
+
+body[data-view-mode="pt"] .pt-only-label {
+  display: inline;
+}
+
+/* PT does not need live execution feedback, but DOES need editable speed thresholds. */
+body[data-view-mode="pt"] #module-form,
+body[data-view-mode="pt"] #view-settings-card,
+body[data-view-mode="pt"] #module-fatigue {
+  display: none !important;
+}
+
+body[data-view-mode="pt"] #module-velocity {
+  display: block !important;
+}
+
+body[data-view-mode="pt"] #module-velocity .vel-band-wrap {
+  display: none !important;
+}
+
+body[data-view-mode="pt"] #module-velocity .vel-thresholds {
+  display: grid !important;
+  margin-top: 0;
+}
+
+/* Patient mode keeps the speed bar, but hides the clinical velocity inputs. */
+body[data-view-mode="patient"] #module-velocity .vel-thresholds {
+  display: none !important;
+}
+
+/* PT workspace should feel like a clean clinical control/review panel. */
+body[data-view-mode="pt"] .prescription-builder-card,
+body[data-view-mode="pt"] .active-protocol-card,
+body[data-view-mode="pt"] .pt-review-card {
+  border: 2px solid color-mix(in srgb, var(--accent), transparent 58%);
+}
+
+.active-protocol-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--primary-soft) 100%);
+}
+
+.active-protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.active-protocol-grid > div {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.active-protocol-lbl {
+  display: block;
+  color: var(--text-dim);
+  font-size: calc(0.72rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.active-protocol-val {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+.active-protocol-updated {
+  margin-top: 10px;
+  color: var(--text-sec);
+  font-size: calc(0.82rem * var(--sidebar-scale));
+  font-weight: 750;
+}
+
+/* Make Patient Mode cleaner by hiding developer/test controls and PT-only details. */
+body[data-view-mode="patient"] #btn-test-summary {
+  display: none !important;
+}
+
+/* Fatigue is not real yet; keep it hidden by default via JS prefs and quiet when enabled. */
+#module-fatigue .card-title::after {
+  content: '  Â· preview';
+  color: var(--text-dim);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* Better PT review visual hierarchy */
+.pt-review-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pt-review-val {
+  font-size: calc(1.25rem * var(--sidebar-scale));
+}
+
+/* Patient form card: keep reps/sets strong without weakening safety status. */
+.metric-circle {
+  border-width: 7px;
+}
+
+.metric-val {
+  font-size: calc(1.18rem * var(--sidebar-scale));
+}
+
+.form-label {
+  font-size: calc(2.05rem * var(--sidebar-scale));
+}
+
+/* Better signal toast readability */
+#signal-overlay .ov-title {
+  font-size: 1rem !important;
+}
+
+#signal-overlay .ov-sub {
+  font-size: 0.9rem !important;
+}
+
+/* Slightly stronger velocity band */
+.vel-band {
+  height: 44px;
+}
+
+/* Slightly larger exercise thumbnail */
+.ex-thumb {
+  width: calc(88px * var(--sidebar-scale));
+  height: calc(88px * var(--sidebar-scale));
+}
+
+.ex-thumb {
+  font-size: calc(2.6rem * var(--sidebar-scale));
+}
+
+
+/* ================================================================
+   PATIENT CARD REDESIGN V4
+   ================================================================ */
+
+/* Exercise details: real patient-readable card */
+.ex-card-inner {
+  align-items: flex-start;
+}
+
+.ex-details {
+  gap: 8px;
+}
+
+.exercise-progress {
+  display: flex;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.progress-pill {
+  min-width: 82px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  text-align: center;
+}
+
+.progress-value {
+  display: block;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: calc(1.15rem * var(--sidebar-scale));
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.progress-label {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-dim);
+  font-size: calc(0.66rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pt-field-label {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--text-dim);
+  font-size: calc(0.72rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Patient does not choose exercises. PT builds protocol. */
+body[data-view-mode="patient"] .pt-exercise-selector {
+  display: none !important;
+}
+
+/* ROM: patient display vs PT controls */
+.patient-rom-display {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rom-current-block {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.rom-current-label {
+  color: var(--text-sec);
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+.rom-current-value {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: calc(2.1rem * var(--sidebar-scale));
+  font-weight: 900;
+  line-height: 1;
+}
+
+.rom-target-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-sec);
+  font-size: calc(0.88rem * var(--sidebar-scale));
+  font-weight: 800;
+}
+
+.rom-target-row strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: calc(0.98rem * var(--sidebar-scale));
+}
+
+.rom-bar {
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.rom-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.2s ease;
+}
+
+.rom-caption {
+  color: var(--text-dim);
+  font-size: calc(0.78rem * var(--sidebar-scale));
+  font-weight: 750;
+}
+
+body[data-view-mode="patient"] .pt-rom-controls {
+  display: none !important;
+}
+
+body[data-view-mode="pt"] .patient-rom-display {
+  display: none !important;
+}
+
+body[data-view-mode="pt"] .pt-rom-controls {
+  display: block !important;
+}
+
+/* Session history card now looks intentional */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+
+.history-row strong {
+  display: block;
+  color: var(--text);
+  font-size: calc(0.9rem * var(--sidebar-scale));
+  font-weight: 900;
+}
+
+.history-row span {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-sec);
+  font-size: calc(0.78rem * var(--sidebar-scale));
+  font-weight: 750;
+}
+
+.history-row.muted {
+  opacity: 0.72;
+}
+
+.history-stat {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* In PT mode, exercise selector only; the patient instructions are not needed there. */
+body[data-view-mode="pt"] #module-exercise .ex-card-inner {
+  display: none;
+}
+
+body[data-view-mode="pt"] #module-exercise .pt-exercise-selector {
+  display: block !important;
+}
+
+/* Keep patient mode clean */
+body[data-view-mode="patient"] #btn-test-summary {
+  display: none !important;
+}

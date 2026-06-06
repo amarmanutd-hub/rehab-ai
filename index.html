@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REHAB AI</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin></script>
+</head>
+
+<body>
+
+  <!-- TOP BAR -->
+  <nav class="topbar">
+    <div class="tb-brand">
+      <div class="tb-logo">R</div>
+      <span class="tb-name">REHAB AI</span>
+    </div>
+
+    <div class="tb-status">
+      <span class="tb-status-lbl">Status:</span>
+      <span class="status-val ready" id="status-text">READY</span>
+      <span class="status-dot ready" id="status-dot"></span>
+    </div>
+
+    <div class="tb-progress">
+      <div class="progress-lbl" id="progress-label">Post-Meniscus · Phase 1: Weeks 1–2</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <button class="mode-btn active" id="mode-patient" type="button">Patient</button>
+      <button class="mode-btn" id="mode-pt" type="button">PT</button>
+    </div>
+
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+      <span class="theme-toggle-icon">🌙</span>
+      <span class="theme-toggle-text">Dark</span>
+    </button>
+  </nav>
+
+  <!-- ROM FREEZE OVERLAY -->
+  <div class="fullscreen-overlay hidden" id="rom-overlay">
+    <div class="overlay-box">
+      <div class="ov-icon stop">⛔</div>
+      <div class="ov-title">Range Limit Exceeded</div>
+      <div class="ov-sub">Session paused. Adjust your position before resuming.</div>
+      <button class="btn-overlay" id="btn-rom-resume">Resume Session</button>
+    </div>
+  </div>
+
+  <!-- CLINICAL SUMMARY OVERLAY -->
+  <div class="summary-overlay hidden" id="summary-overlay">
+    <div class="sum-panel">
+      <div class="sum-header">
+        <span class="sum-logo">REHAB AI</span>
+        <span class="sum-title">SESSION COMPLETE — CLINICAL REPORT</span>
+      </div>
+
+      <div class="sum-body">
+        <div class="sum-section">
+          <div class="sum-sec-lbl">📊 Performance</div>
+          <p id="sum-perf" class="sum-text"></p>
+        </div>
+
+        <div class="sum-section">
+          <div class="sum-sec-lbl">📐 ROM Metrics</div>
+          <p id="sum-rom" class="sum-text"></p>
+        </div>
+
+        <div class="sum-section">
+          <div class="sum-sec-lbl">🩺 Clinical Notes</div>
+          <ul id="sum-notes-text" class="sum-list"></ul>
+        </div>
+
+        <div class="sum-section">
+          <div class="sum-sec-lbl">📝 Patient Notes</div>
+          <textarea id="sum-user-notes" class="sum-textarea" placeholder="Record pain levels, difficulty, swelling, or subjective feedback..."></textarea>
+        </div>
+      </div>
+
+      <div class="sum-actions">
+        <button class="btn-sum-primary" id="btn-sum-restart">New Session</button>
+        <button class="btn-sum-ghost" id="btn-sum-dismiss">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <main class="layout">
+
+    <!-- VIDEO AREA -->
+    <section class="video-panel">
+
+      <div class="fullscreen-overlay hidden" id="signal-overlay">
+        <div class="overlay-box">
+          <div class="ov-icon warn">⚠</div>
+          <div class="ov-title">Signal Lost</div>
+          <div class="ov-sub">Move camera to show hip, knee, and ankle.</div>
+        </div>
+      </div>
+
+      <video id="webcam" autoplay playsinline></video>
+      <canvas id="output-canvas"></canvas>
+
+      <div class="bk tl"></div>
+      <div class="bk tr"></div>
+      <div class="bk bl"></div>
+      <div class="bk br"></div>
+    </section>
+
+    <!-- DRAGGABLE SIDEBAR RESIZE HANDLE -->
+    <div
+      id="sidebar-resize-handle"
+      class="resize-handle"
+      title="Drag to resize sidebar">
+    </div>
+
+    <!-- RIGHT CLINICAL SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- FORM STATUS -->
+      <section class="dash-card form-card module-card module-mandatory" id="module-form" data-module="form">
+        <div class="card-title">FORM STATUS</div>
+
+        <div class="form-grid">
+          <div class="form-main">
+            <div class="form-icon-wrap" id="form-icon">
+              <svg viewBox="0 0 40 40" class="form-svg stable">
+                <circle cx="20" cy="20" r="18" fill="#087F5B"/>
+                <polyline points="11,20 17,27 29,13" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="form-label stable" id="form-label">STABLE</div>
+          </div>
+
+          <div class="metric-circle">
+            <div class="metric-lbl">REPS</div>
+            <div class="metric-val mono" id="reps-display">0/10</div>
+          </div>
+
+          <div class="metric-circle">
+            <div class="metric-lbl">SETS</div>
+            <div class="metric-val mono" id="sets-display">0/3</div>
+          </div>
+        </div>
+
+        <div class="hold-row">
+          <span class="hold-lbl">HOLD TIMER</span>
+          <span class="hold-val mono" id="hold-display">—</span>
+        </div>
+      </section>
+
+      <!-- VELOCITY BAND -->
+      <section class="dash-card vel-card module-card module-mandatory" id="module-velocity" data-module="velocity">
+        <div class="card-title"><span class="patient-only-label">ANGULAR VELOCITY CONTROL BAND</span><span class="pt-only-label">VELOCITY THRESHOLDS</span></div>
+
+        <div class="vel-band-wrap">
+          <div class="vel-band">
+            <div class="vel-target-zone"></div>
+            <div class="vel-marker" id="vel-marker"></div>
+          </div>
+
+          <div class="vel-scale">
+            <span>Fast</span>
+            <span class="vel-zone-lbl">Target Zone</span>
+            <span>Slow</span>
+          </div>
+        </div>
+
+        <div class="vel-thresholds pt-prescription">
+          <div class="tg-cell">
+            <label>Min Speed</label>
+            <input type="number" class="num-inp clinical-input" id="inp-vel-low" value="20" min="0" max="200" />
+          </div>
+          <div class="tg-cell">
+            <label>Max Speed</label>
+            <input type="number" class="num-inp clinical-input" id="inp-vel-high" value="60" min="0" max="200" />
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW SETTINGS / PATIENT MODULE CONTROL -->
+      <section class="dash-card view-settings-card" id="view-settings-card">
+        <button class="view-settings-toggle" id="view-settings-toggle" type="button">
+          <span>View Settings</span>
+          <span class="view-settings-chev">▾</span>
+        </button>
+
+        <div class="view-settings-body" id="view-settings-body">
+          <div class="view-settings-note">Mandatory safety modules stay locked on.</div>
+
+          <label class="module-toggle mandatory">
+            <input type="checkbox" checked disabled />
+            <span>Form Status</span>
+            <small>Locked</small>
+          </label>
+
+          <label class="module-toggle mandatory">
+            <input type="checkbox" checked disabled />
+            <span>Velocity / Speed</span>
+            <small>Locked</small>
+          </label>
+
+          <label class="module-toggle">
+            <input type="checkbox" class="module-pref" data-module-pref="exercise" checked />
+            <span>Exercise Details</span>
+          </label>
+
+          <label class="module-toggle">
+            <input type="checkbox" class="module-pref" data-module-pref="rom" checked />
+            <span>ROM Monitor</span>
+          </label>
+
+          <label class="module-toggle">
+            <input type="checkbox" class="module-pref" data-module-pref="tempo" checked />
+            <span>Tempo / Session Info</span>
+          </label>
+
+          <label class="module-toggle">
+            <input type="checkbox" class="module-pref" data-module-pref="fatigue" checked />
+            <span>Fatigue Plot</span>
+          </label>
+
+          <label class="module-toggle">
+            <input type="checkbox" class="module-pref" data-module-pref="history" checked />
+            <span>Session History</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- EXERCISE PROTOCOL -->
+      <section class="dash-card protocol-card acc-card module-card optional-module" id="module-exercise" data-module="exercise">
+        <div class="acc-header" data-target="acc-ex">
+          <span>Exercise Protocol <span class="acc-ex-name" id="acc-ex-name">(e.g., Supine Heel Slide)</span></span>
+          <span class="acc-chev">▴</span>
+        </div>
+
+        <div class="acc-body open" id="acc-ex">
+          <div class="ex-card-inner">
+            <div class="ex-thumb" id="ex-thumb">🛝</div>
+
+            <div class="ex-details">
+              <div class="ex-name" id="ex-card-name">Supine Heel Slide</div>
+
+              <div class="exercise-progress">
+                <div class="progress-pill">
+                  <span class="progress-value" id="ex-card-reps">0/10</span>
+                  <span class="progress-label">REPS</span>
+                </div>
+
+                <div class="progress-pill">
+                  <span class="progress-value" id="ex-card-sets">0/3</span>
+                  <span class="progress-label">SETS</span>
+                </div>
+              </div>
+
+              <div class="ex-meta dim" id="ex-card-desc"></div>
+            </div>
+          </div>
+
+          <div class="pt-exercise-selector pt-prescription">
+            <label class="pt-field-label">Exercise Selector</label>
+            <select class="sel-input" id="ex-dropdown" data-clinical-input="true"></select>
+          </div>
+        </div>
+      </section>
+
+      <!-- PT PRESCRIPTION BUILDER STATUS -->
+      <section class="dash-card prescription-builder-card pt-prescription" id="prescription-builder-card">
+        <div class="card-title">PT Prescription Builder</div>
+        <p class="prescription-copy">
+          Set the patient protocol below. Push changes when the prescription is ready.
+        </p>
+      </section>
+
+      <!-- ACTIVE PATIENT PROTOCOL -->
+      <section class="dash-card active-protocol-card pt-prescription" id="active-protocol-card">
+        <div class="card-title">Active Patient Protocol</div>
+
+        <div class="active-protocol-grid">
+          <div>
+            <span class="active-protocol-lbl">Exercise</span>
+            <span class="active-protocol-val" id="active-protocol-exercise">—</span>
+          </div>
+
+          <div>
+            <span class="active-protocol-lbl">Phase</span>
+            <span class="active-protocol-val" id="active-protocol-phase">—</span>
+          </div>
+
+          <div>
+            <span class="active-protocol-lbl">ROM</span>
+            <span class="active-protocol-val" id="active-protocol-rom">—</span>
+          </div>
+
+          <div>
+            <span class="active-protocol-lbl">Sets/Reps</span>
+            <span class="active-protocol-val" id="active-protocol-dose">—</span>
+          </div>
+        </div>
+
+        <div class="active-protocol-updated" id="active-protocol-updated">
+          No published protocol yet.
+        </div>
+      </section>
+
+      <!-- RECOVERY PHASE -->
+      <section class="dash-card phase-card acc-card module-card optional-module pt-prescription" id="module-phase" data-module="phase">
+        <div class="acc-header" data-target="acc-phase">
+          <span>Recovery Phase <span class="acc-ex-name">(e.g., Phase 1)</span></span>
+          <span class="acc-chev">▴</span>
+        </div>
+
+        <div class="acc-body open" id="acc-phase">
+          <select class="sel-input" id="phase-dropdown" data-clinical-input="true">
+            <option value="1">Phase 1 — Weeks 1–4 (ROM Restoration)</option>
+            <option value="2">Phase 2 — Weeks 4–8 (Strength Building)</option>
+            <option value="3">Phase 3 — Weeks 8–16 (Functional Loading)</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- ROM SAFETY LIMITS -->
+      <section class="dash-card rom-card acc-card module-card optional-module" id="module-rom" data-module="rom">
+        <div class="acc-header" data-target="acc-rom">
+          <span>ROM Safety Limits</span>
+          <span class="acc-chev">▴</span>
+        </div>
+
+        <div class="acc-body open" id="acc-rom">
+
+          <!-- Patient-facing ROM monitor -->
+          <div class="patient-rom-display">
+            <div class="rom-current-block">
+              <span class="rom-current-label">Current ROM</span>
+              <span class="rom-current-value" id="live-rom">—°</span>
+            </div>
+
+            <div class="rom-target-row">
+              <span>Target Zone</span>
+              <strong id="rom-target">0°–180°</strong>
+            </div>
+
+            <div class="rom-bar">
+              <div class="rom-fill" id="rom-fill"></div>
+            </div>
+
+            <div class="rom-caption" id="rom-caption">
+              Stay inside the prescribed safe range.
+            </div>
+          </div>
+
+          <!-- PT-facing ROM prescription controls -->
+          <div class="pt-rom-controls">
+            <div class="rom-grid">
+              <div class="inp-group">
+                <label>Max ROM</label>
+                <input type="number" class="num-inp" id="inp-max-rom" data-clinical-input="true" value="180" min="0" max="180" />
+              </div>
+
+              <div class="rom-hint-box">
+                Session ROM: live knee angle during movement.
+              </div>
+
+              <div class="inp-group">
+                <label>Min ROM</label>
+                <input type="number" class="num-inp" id="inp-min-rom" data-clinical-input="true" value="0" min="0" max="180" />
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-lbl">Active ROM Monitor</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="rom-toggle" data-clinical-input="true" checked />
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="rom-status-lbl" id="rom-status">ROM</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TEMPO CONFIG -->
+      <section class="dash-card tempo-card acc-card module-card optional-module" id="module-tempo" data-module="tempo">
+        <div class="acc-header" data-target="acc-tempo">
+          <span>Tempo &amp; Session Config</span>
+          <span class="acc-chev">▴</span>
+        </div>
+
+        <div class="acc-body open" id="acc-tempo">
+          <div class="tempo-grid">
+            <div class="tg-cell">
+              <label>Sets</label>
+              <input type="number" class="num-inp" id="inp-sets" data-clinical-input="true" value="3" min="1" />
+            </div>
+
+            <div class="tg-cell">
+              <label>Rest</label>
+              <input type="number" class="num-inp" id="inp-rest" data-clinical-input="true" value="2" min="0" step="0.5" />
+            </div>
+
+            <div class="tg-cell">
+              <label>Set Rest</label>
+              <input type="number" class="num-inp" id="inp-rest2" data-clinical-input="true" value="2" min="0" step="0.5" />
+            </div>
+
+            <div class="tg-cell">
+              <label>To Peak</label>
+              <input type="number" class="num-inp" id="inp-topeak" data-clinical-input="true" value="3" min="0.5" step="0.5" />
+            </div>
+
+            <div class="tg-cell">
+              <label>Hold</label>
+              <input type="number" class="num-inp" id="inp-hold" data-clinical-input="true" value="2" min="0" step="0.5" />
+            </div>
+
+            <div class="tg-cell">
+              <label>Return</label>
+              <input type="number" class="num-inp" id="inp-return" data-clinical-input="true" value="3" min="0.5" step="0.5" />
+            </div>
+          </div>
+
+          <input type="hidden" id="inp-reps" value="10" />
+        </div>
+      </section>
+
+      <!-- FATIGUE PLOT -->
+      <section class="dash-card fatigue-card module-card optional-module" id="module-fatigue" data-module="fatigue">
+        <div class="card-title">FATIGUE PLOT</div>
+        <div class="fatigue-plot" id="fatigue-plot">
+          <div class="fatigue-bar" style="height:35%"></div>
+          <div class="fatigue-bar" style="height:45%"></div>
+          <div class="fatigue-bar" style="height:38%"></div>
+          <div class="fatigue-bar" style="height:58%"></div>
+          <div class="fatigue-bar" style="height:62%"></div>
+          <div class="fatigue-bar" style="height:72%"></div>
+          <div class="fatigue-bar" style="height:68%"></div>
+        </div>
+        <div class="fatigue-caption" id="fatigue-caption">Preview placeholder — real fatigue scoring will populate here.</div>
+      </section>
+
+      <!-- ACTIONS -->
+      <section class="action-stack">
+        <button class="btn-cal" id="btn-calibrate">START CALIBRATION</button>
+        <button class="btn-apply" id="btn-apply">APPLY CHANGES</button>
+        <button class="btn-push-patient pt-prescription" id="btn-push-patient">PUBLISH PROTOCOL</button>
+        <button class="btn-test-summary pt-prescription" id="btn-test-summary">TEST SUMMARY</button>
+      </section>
+
+      <!-- PT REVIEW / TELEMETRY -->
+      <section class="dash-card pt-review-card pt-prescription" id="pt-review-card">
+        <div class="card-title">PT Review Dashboard</div>
+
+        <div class="pt-review-grid">
+          <div class="pt-review-metric">
+            <span class="pt-review-lbl">Last ROM</span>
+            <span class="pt-review-val" id="pt-last-rom">—</span>
+          </div>
+
+          <div class="pt-review-metric">
+            <span class="pt-review-lbl">Safety Events</span>
+            <span class="pt-review-val" id="pt-safety-events">0</span>
+          </div>
+
+          <div class="pt-review-metric">
+            <span class="pt-review-lbl">Compensations</span>
+            <span class="pt-review-val" id="pt-comp-events">0</span>
+          </div>
+        </div>
+
+        <div class="pt-review-note" id="pt-review-note">
+          Patient telemetry continues recording in the background, even when modules are hidden.
+        </div>
+      </section>
+
+      <!-- SESSION HISTORY -->
+      <section class="dash-card history-card module-card optional-module" id="module-history" data-module="history">
+        <div class="card-title">SESSION HISTORY &amp; METRICS</div>
+        <div class="history-list" id="history-list">
+          <div class="history-row">
+            <div>
+              <strong>Today</strong>
+              <span>Session in progress</span>
+            </div>
+            <div class="history-stat">
+              <span id="history-rom">ROM —</span>
+              <span id="history-warnings">Warnings 0</span>
+            </div>
+          </div>
+
+          <div class="history-row muted">
+            <div>
+              <strong>Previous</strong>
+              <span>No completed session yet</span>
+            </div>
+            <div class="history-stat">
+              <span>—</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
