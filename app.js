@@ -1,7 +1,7 @@
 // ================================================================
-// REHAB.AI — app.js  v4.0
+// REHAB.AI — app.js  v4.0 · Phase 1.2.7 Heel Anchor
 // Matches image blueprint exactly.
-// Kalman · Confidence gate · Orthogonality · ROM safety
+// Kalman · Confidence gate · Ankle integrity · ROM safety
 // Phase-locked registry · Velocity target band · Clinical summary
 // ================================================================
 'use strict';
@@ -52,6 +52,27 @@ const trackingQualityEl = document.getElementById('tracking-quality');
 const trackingQualityText = document.getElementById('tracking-quality-text');
 const legLeftBtn = document.getElementById('leg-left');
 const legRightBtn = document.getElementById('leg-right');
+
+// Phase 1.2 source/test-video/debug harness
+const sourceCameraBtn = document.getElementById('source-camera');
+const sourceTestVideoBtn = document.getElementById('source-test-video');
+const testVideoFileInput = document.getElementById('test-video-file');
+const videoPlayBtn = document.getElementById('video-play');
+const videoPauseBtn = document.getElementById('video-pause');
+const videoRestartBtn = document.getElementById('video-restart');
+const videoStepBtn = document.getElementById('video-step');
+const videoSpeedSelect = document.getElementById('video-speed');
+const sourceNote = document.getElementById('source-note');
+const debugToggleBtn = document.getElementById('debug-toggle');
+const debugPanel = document.getElementById('debug-panel');
+const dbgSource = document.getElementById('dbg-source');
+const dbgPoseFps = document.getElementById('dbg-pose-fps');
+const dbgInferenceAge = document.getElementById('dbg-inference-age');
+const dbgRawAngle = document.getElementById('dbg-raw-angle');
+const dbgSmoothAngle = document.getElementById('dbg-smooth-angle');
+const dbgFrames = document.getElementById('dbg-frames');
+const dbgReason = document.getElementById('dbg-reason');
+const dbgVideoTime = document.getElementById('dbg-video-time');
 
 // Form status card
 const formIcon      = document.getElementById('form-icon');
@@ -121,109 +142,20 @@ canvasEl.height = 480;
 // ================================================================
 const PHASE_META = {
     1: { label: 'Phase 1', weeks: 'Weeks 1–4', desc: 'ROM Restoration · Swelling Control · Quad Activation' },
-    2: { label: 'Phase 2', weeks: 'Weeks 4–8', desc: 'Strength Building · Neuromuscular Control' },
-    3: { label: 'Phase 3', weeks: 'Weeks 8–16', desc: 'Functional Loading · Return to Activity' },
 };
 
+// Heel-slide-only build for now. Keep the same UI shell, but constrain the protocol
+// to one phase and one exercise so the perception stack can become reliable first.
 const REGISTRY = {
     1: [
-        { key:'ankle_pumps',  name:'Ankle Pumps',
-          desc:'Seated or supine. Pump ankle through full dorsiflexion/plantarflexion. Camera LEFT.',
-          thumb:'🦶',
-          lm:{p1:25,p2:27,p3:31}, hip:23, peakContracted:true, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:5, trunkLean:0.05 },
-          cues:{ straight:'Foot neutral. Relax.', toPeak:'Pull toes up — dorsiflex.', hold:'Hold dorsiflexion.', ret:'Point foot down slowly.', lag:null, comp:'Keep knee still.' } },
-        { key:'quad_sets',    name:'Quad Sets (Isometric)',
-          desc:'Lying flat. Press knee into surface, tighten quad, hold. Camera LEFT.',
-          thumb:'🦵',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:false, legRaise:false, lagThr:165,
-          comp:{ hipRise:5, trunkLean:0.05 },
-          cues:{ straight:'Relax quad.', toPeak:'Press knee down — activate quad.', hold:'Hold contraction.', ret:'Relax slowly.', lag:'Insufficient quad activation.', comp:'Do not lift hips.' } },
         { key:'heel_slide',   name:'Supine Heel Slide',
-          desc:'Supine. Slide heel toward glutes and back. Camera LEFT.',
+          desc:'Supine. Slide heel toward glutes and back. Camera side-view. Rehab AI tracks hip → knee → ankle ROM.',
           thumb:'🛝',
           lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:true, calBoth:true, legRaise:false, lagThr:160,
           comp:{ hipRise:5, trunkLean:0.05 },
           cues:{ straight:'Leg extended. Rest.', toPeak:'Slide heel toward glutes.', hold:'Hold — knee fully bent.', ret:'Slide slowly back.', lag:'Extensor lag — lock out fully at rest.', comp:'Hip hiking detected — keep pelvis flat.' } },
-        { key:'slr',          name:'Straight Leg Raise (SLR)',
-          desc:'Supine. Raise straight left leg to ~45°. Camera LEFT.',
-          thumb:'⬆️',
-          lm:{p1:23,p2:25,p3:27}, hipFlex:{p1:11,p2:23,p3:25}, hip:23, peakContracted:false, calBoth:false, legRaise:true, peakHipTarget:135, lagThr:155,
-          comp:{ hipRise:0.06, trunkLean:0.05 },
-          cues:{ straight:'Leg flat. Tighten quad first.', toPeak:'Raise slowly — keep knee straight.', hold:'Hold at top.', ret:'Lower under control.', lag:'Knee bending — quad lag detected.', comp:'Hip shift — keep pelvis level.' } },
-        { key:'glute_sets',   name:'Gluteal Sets (Isometric)',
-          desc:'Lying flat. Squeeze glutes and hold. Camera overhead or LEFT.',
-          thumb:'🍑',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:false, legRaise:false, lagThr:null,
-          comp:{ hipRise:0.06, trunkLean:0.04 },
-          cues:{ straight:'Relax glutes.', toPeak:'Squeeze glutes.', hold:'Hold the squeeze.', ret:'Slowly release.', lag:null, comp:'Do not lift hips.' } },
-    ],
-    2: [
-        { key:'saqs',         name:'Short Arc Quads (SAQs)',
-          desc:'Supine, rolled towel under knee. Extend from 45° to full lock. Camera LEFT.',
-          thumb:'🦵',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:158,
-          comp:{ hipRise:5, trunkLean:0.05 },
-          cues:{ straight:'Leg at 45°. Relax.', toPeak:'Extend — lock knee out.', hold:'Hold at full extension.', ret:'Lower slowly to 45°.', lag:'Extensor lag — drive to full lock.', comp:'Keep thigh on the roll.' } },
-        { key:'bridges',      name:'Supine Bridges',
-          desc:'Supine, knees bent. Drive hips up. Camera LEFT.',
-          thumb:'🌉',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:0.08, trunkLean:0.06 },
-          cues:{ straight:'Hips down. Relax.', toPeak:'Drive hips up — squeeze glutes.', hold:'Hold at top. Hips level.', ret:'Lower slowly.', lag:null, comp:'Hip drop — keep hips level.' } },
-        { key:'leg_extension',name:'Seated Leg Extension',
-          desc:'Seated at edge. Extend left knee from 90° to full lock. Camera LEFT.',
-          thumb:'🦿',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:158,
-          comp:{ hipRise:5, trunkLean:0.05 },
-          cues:{ straight:'Leg at 90°. Rest.', toPeak:'Extend — lock the knee.', hold:'Hold. Quad squeezed.', ret:'Lower slowly.', lag:'Extensor lag — knee not at full extension.', comp:'Keep trunk upright.' } },
-        { key:'calf_raises',  name:'Calf Raises',
-          desc:'Standing. Rise on toes and lower. Camera LEFT.',
-          thumb:'👟',
-          lm:{p1:25,p2:27,p3:31}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:5, trunkLean:0.05 },
-          cues:{ straight:'Feet flat. Ready.', toPeak:'Rise onto toes.', hold:'Hold at top.', ret:'Lower slowly.', lag:null, comp:'Keep knees straight.' } },
-        { key:'ham_curl',     name:'Standing Hamstring Curl',
-          desc:'Standing. Curl left heel toward glutes. Camera LEFT.',
-          thumb:'🔄',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:true, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:5, trunkLean:0.05 },
-          cues:{ straight:'Leg straight. Stand tall.', toPeak:'Curl heel up.', hold:'Hold at peak.', ret:'Lower slowly.', lag:null, comp:'Keep thigh still.' } },
-    ],
-    3: [
-        { key:'mini_squats',  name:'Mini Squats',
-          desc:'Standing. Partial squat to ~45°. Camera LEFT.',
-          thumb:'🏋️',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:true, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:5, trunkLean:0.07 },
-          cues:{ straight:'Standing. Ready.', toPeak:'Descend — knee over toes.', hold:'Hold at depth.', ret:'Drive through heels.', lag:null, comp:'Knee caving — push knee out.' } },
-        { key:'step_ups',     name:'Step-Ups',
-          desc:'Step up with left leg leading. Camera LEFT.',
-          thumb:'🪜',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:155,
-          comp:{ hipRise:5, trunkLean:0.06 },
-          cues:{ straight:'At platform. Ready.', toPeak:'Step up — drive quad.', hold:'Full extension at top.', ret:'Step down slowly.', lag:'Incomplete extension at top.', comp:'Trunk lean — keep torso upright.' } },
-        { key:'wall_sit',     name:'Wall Sit',
-          desc:'Back to wall. Hold 90° position. Camera LEFT.',
-          thumb:'🧱',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:true, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:5, trunkLean:0.08 },
-          cues:{ straight:'Standing at wall.', toPeak:'Slide to 90°.', hold:'Hold — back flat on wall.', ret:'Slide back up.', lag:null, comp:'Back leaving wall.' } },
-        { key:'sit_stand',    name:'Sit-to-Stand',
-          desc:'From chair, stand and return under control. Camera LEFT.',
-          thumb:'🪑',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:155,
-          comp:{ hipRise:5, trunkLean:0.07 },
-          cues:{ straight:'Seated. Lean slightly forward.', toPeak:'Drive through heels — stand.', hold:'Full extension standing.', ret:'Lower slowly.', lag:'Incomplete extension — stand fully.', comp:'Trunk lean — keep chest tall.' } },
-        { key:'lateral_walks',name:'Banded Lateral Walks',
-          desc:'Band above knees. Step sideways maintaining squat. Camera FRONT.',
-          thumb:'🔀',
-          lm:{p1:23,p2:25,p3:27}, hip:23, peakContracted:false, calBoth:true, legRaise:false, lagThr:null,
-          comp:{ hipRise:5, trunkLean:0.06 },
-          cues:{ straight:'Athletic stance.', toPeak:'Step out — maintain depth.', hold:'Hold. Resist band.', ret:'Bring feet together.', lag:null, comp:'Hip drop — maintain level hips.' } },
     ],
 };
-
 
 // ================================================================
 // TRACKING TRUST LAYER
@@ -268,6 +200,11 @@ class OneEuroFilter {
         this.lastTime = timestamp;
         return result;
     }
+    setTuning(minCutoff = this.minCutoff, beta = this.beta, dCutoff = this.dCutoff){
+        this.minCutoff = minCutoff;
+        this.beta = beta;
+        this.dCutoff = dCutoff;
+    }
     reset(){
         this.xFilter.reset();
         this.dxFilter.reset();
@@ -276,13 +213,173 @@ class OneEuroFilter {
     }
 }
 
+
+// Constant-velocity Kalman filter for trusted 2D target landmarks.
+// This predicts where the knee/ankle should be and soft-rejects sudden opposite-leg teleports.
+class Kalman2D {
+    constructor(processNoise = 0.018, measurementNoise = 0.035, gate = 0.20) {
+        this.q = processNoise;
+        this.r = measurementNoise;
+        this.gate = gate;
+        this.initialized = false;
+        this.x = [0, 0, 0, 0]; // px, py, vx, vy in normalized coords/sec
+        this.P = [
+            [1,0,0,0],
+            [0,1,0,0],
+            [0,0,1,0],
+            [0,0,0,1]
+        ];
+        this.lastTime = null;
+        this.rejected = 0;
+    }
+
+    reset() {
+        this.initialized = false;
+        this.x = [0, 0, 0, 0];
+        this.P = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+        this.lastTime = null;
+        this.rejected = 0;
+    }
+
+    predict(now = performance.now()) {
+        if (!this.initialized) return { x: this.x[0], y: this.x[1] };
+        const dt = this.lastTime === null ? 1/30 : Math.max(0.001, Math.min(0.12, (now - this.lastTime) / 1000));
+        const F = [
+            [1,0,dt,0],
+            [0,1,0,dt],
+            [0,0,1,0],
+            [0,0,0,1]
+        ];
+        const nx = [
+            this.x[0] + dt * this.x[2],
+            this.x[1] + dt * this.x[3],
+            this.x[2],
+            this.x[3]
+        ];
+        const FP = matMul(F, this.P);
+        const Ft = transpose(F);
+        this.P = matAdd(matMul(FP, Ft), [
+            [this.q,0,0,0],
+            [0,this.q,0,0],
+            [0,0,this.q*4,0],
+            [0,0,0,this.q*4]
+        ]);
+        this.x = nx;
+        this.lastTime = now;
+        return { x: this.x[0], y: this.x[1] };
+    }
+
+    update(point, now = performance.now(), measurementTrust = 1) {
+        const meas = { x: point.x, y: point.y };
+        if (!this.initialized) {
+            this.initialized = true;
+            this.x = [meas.x, meas.y, 0, 0];
+            this.lastTime = now;
+            return { ...point, x: meas.x, y: meas.y, kalmanRejected: false };
+        }
+
+        const pred = this.predict(now);
+        const residual = Math.hypot(meas.x - pred.x, meas.y - pred.y);
+        const trust = Math.max(0.15, Math.min(1, measurementTrust));
+        const dynamicGate = this.gate + (1 - trust) * 0.08;
+
+        // If MediaPipe suddenly jumps to the other leg, keep the prediction instead of corrupting ROM.
+        if (residual > dynamicGate) {
+            this.rejected++;
+            return { ...point, x: pred.x, y: pred.y, visibility: Math.min(point.visibility ?? 1, 0.45), kalmanRejected: true };
+        }
+
+        this.rejected = Math.max(0, this.rejected - 1);
+        const R = this.r / trust;
+        const Sx = this.P[0][0] + R;
+        const Sy = this.P[1][1] + R;
+        const kx = [this.P[0][0]/Sx, this.P[1][0]/Sx, this.P[2][0]/Sx, this.P[3][0]/Sx];
+        const ky = [this.P[0][1]/Sy, this.P[1][1]/Sy, this.P[2][1]/Sy, this.P[3][1]/Sy];
+        const rx = meas.x - this.x[0];
+        const ry = meas.y - this.x[1];
+
+        for (let i=0; i<4; i++) this.x[i] += kx[i] * rx + ky[i] * ry;
+
+        // Lightweight covariance update for H=[1,0,0,0] and H=[0,1,0,0]
+        this.P[0][0] *= (1 - kx[0]);
+        this.P[1][1] *= (1 - ky[1]);
+        this.P[2][2] = Math.max(0.0001, this.P[2][2] * 0.98);
+        this.P[3][3] = Math.max(0.0001, this.P[3][3] * 0.98);
+
+        return { ...point, x: this.x[0], y: this.x[1], kalmanRejected: false };
+    }
+}
+
+function matMul(A, B) {
+    const rows = A.length, cols = B[0].length, inner = B.length;
+    const out = Array.from({length: rows}, () => Array(cols).fill(0));
+    for (let i=0; i<rows; i++) for (let j=0; j<cols; j++) for (let k=0; k<inner; k++) out[i][j] += A[i][k] * B[k][j];
+    return out;
+}
+function transpose(A) { return A[0].map((_, i) => A.map(row => row[i])); }
+function matAdd(A, B) { return A.map((row, i) => row.map((v, j) => v + B[i][j])); }
+
 const LEG_IDX = {
-    left:  { shoulder: 11, hip: 23, knee: 25, ankle: 27, foot: 31 },
-    right: { shoulder: 12, hip: 24, knee: 26, ankle: 28, foot: 32 }
+    left:  { shoulder: 11, hip: 23, knee: 25, ankle: 27, heel: 29, foot: 31 },
+    right: { shoulder: 12, hip: 24, knee: 26, ankle: 28, heel: 30, foot: 32 }
 };
 
 let workingLeg = localStorage.getItem('rehabWorkingLeg') || 'left';
 let lockedLeg = workingLeg;
+let pendingPhysicalLeg = null;
+let pendingPhysicalLegFrames = 0;
+let pendingPhysicalLegStart = null;
+let targetLimbProfile = null;
+let targetProfileSamples = [];
+let targetProfileReady = false;
+let trackingUncertain = false;
+let lastUncertainReason = '—';
+
+// Phase 1.2.7: heel-anchor + ankle-offset integrity state machine.
+// Heel is the motion/contact anchor for heel slides; ankle is the clinical ROM point.
+const HEEL_SCORE_TRUSTED = 70;
+let lastHeelIntegrityScore = 0;
+let lastHeelIntegrityReason = 'initializing';
+let lastHeelTrusted = false;
+
+// Phase 1.2.7: ankle integrity state machine.
+// Visual ankle prediction can continue during bad frames, but clinical ROM/reps only update on trusted ankle frames.
+const ANKLE_SCORE_TRUSTED = 80;
+const ANKLE_SCORE_QUESTIONABLE = 55;
+const ANKLE_RECOVERY_FRAMES = 3;
+const ANKLE_FAST_RECOVERY_FRAMES = 2;
+const ANKLE_FAST_RECOVERY_SCORE = 90;
+let ankleIntegrityState = 'trusted'; // trusted | questionable | rejected
+let ankleGoodFrames = 0;
+let ankleBadFrames = 0;
+let ankleQuestionableFrames = 0;
+let lastAnkleIntegrityScore = 0;
+let lastAnkleIntegrityReason = 'initializing';
+
+const TARGET_PROFILE_MIN_SAMPLES = 10;
+const TARGET_PROFILE_MAX_SAMPLES = 55;
+const SWITCH_HOLD_MS = 550;
+const SWITCH_MARGIN = 18;
+const HARD_SWITCH_MARGIN = 34;
+
+// Phase 1.2.4: motion-based working-leg lock.
+// The app identifies the limb performing the prescribed exercise instead of trusting MediaPipe left/right labels.
+const MOTION_OBSERVE_MS = 2800;
+const MOTION_OBSERVE_MIN_SAMPLES = 18;
+const MOTION_LOCK_MARGIN = 12;
+const MOTION_LOCK_MIN_SCORE = 18;
+let motionLockState = null;
+let motionLockSource = 'manual';
+let motionLockScores = { left: 0, right: 0 };
+let motionLockReason = 'manual';
+
+let lastKneeToAnkleVec = null;
+let ankleVectorHoldFrames = 0;
+let lastFrameAccepted = false;
+let lastGoodSegmentLengths = null;
+let velocityAngleLast = null;
+let velocityTimeLast = null;
+let velocityDebugLast = 0;
 let lastTrackingScore = 0;
 let lastTrackingReason = 'Checking…';
 let lastGoodPts = null;
@@ -291,8 +388,36 @@ let badTrackingFrames = 0;
 let goodTrackingFrames = 0;
 let lastQualityUIUpdate = 0;
 
+// Phase 1.2 input source + debug metrics state
+let activeSourceMode = 'camera';
+document.body.dataset.sourceMode = 'camera';
+let cameraController = null;
+let testVideoObjectURL = null;
+let testVideoRAF = null;
+let inferenceBusy = false;
+let lastTestPoseSend = 0;
+let lastPoseSendAt = 0;
+let lastPoseResultAt = 0;
+let poseFpsEMA = 0;
+let lastPoseResultDelta = 0;
+let debugAcceptedFrames = 0;
+let debugRejectedFrames = 0;
+let debugRawAngle = null;
+let debugSmoothAngle = null;
+let debugLastDecision = '—';
+const TEST_VIDEO_FPS = 30;
+const TEST_VIDEO_INFERENCE_MS = 50; // ~20 FPS, enough for repeatable rehab tests.
+
+// Phase 1.1 false-positive rejection thresholds.
+// The calibration button can still be clicked at any time, but frames below
+// these thresholds are not drawn or used for calibration/exercise logic.
+const DRAW_QUALITY_MIN = 55;
+const ACCEPT_QUALITY_MIN = 62;
+const CALIBRATION_QUALITY_MIN = 68;
+const STALE_POSE_CLEAR_FRAMES = 6;
+
 const landmarkFilters = {};
-['hip','knee','ankle','shoulder','foot'].forEach(name => {
+['hip','knee','ankle','heel','shoulder','foot'].forEach(name => {
     landmarkFilters[name] = {
         x: new OneEuroFilter(30, 0.72, 0.018, 1.0),
         y: new OneEuroFilter(30, 0.72, 0.018, 1.0),
@@ -300,15 +425,22 @@ const landmarkFilters = {};
 });
 const angleFilter = new OneEuroFilter(30, 0.9, 0.018, 1.0);
 const velocityFilter = new OneEuroFilter(30, 1.2, 0.02, 1.0);
+const trustedKalman = {
+    hip: new Kalman2D(0.012, 0.03, 0.18),
+    knee: new Kalman2D(0.014, 0.028, 0.14),
+    ankle: new Kalman2D(0.018, 0.032, 0.16),
+    heel: new Kalman2D(0.016, 0.028, 0.14),
+    foot: new Kalman2D(0.02, 0.04, 0.20),
+};
 
 function rawLM(raw, name, leg = lockedLeg) {
     const idx = LEG_IDX[leg]?.[name] ?? LEG_IDX.left[name];
-    const r = raw[idx];
+    const r = raw[idx] || { x: 0.5, y: 0.5, z: 0, visibility: 0 };
     return { x: r.x, y: r.y, z: r.z || 0, visibility: r.visibility ?? 1 };
 }
 
-function fLM(raw, name) {
-    const r = rawLM(raw, name, lockedLeg);
+function fLM(raw, name, leg = lockedLeg) {
+    const r = rawLM(raw, name, leg);
     const filters = landmarkFilters[name];
     if (!filters) return r;
     const now = performance.now();
@@ -320,15 +452,20 @@ function fLM(raw, name) {
     };
 }
 
-function getWorkingLegPoints(raw, smoothed = true) {
-    const getter = smoothed ? fLM : rawLM;
+function getLegPoints(raw, leg, smoothed = false) {
+    const getter = smoothed ? (r, n) => fLM(r, n, leg) : (r, n) => rawLM(r, n, leg);
     return {
         shoulder: getter(raw, 'shoulder'),
         hip: getter(raw, 'hip'),
         knee: getter(raw, 'knee'),
         ankle: getter(raw, 'ankle'),
+        heel: getter(raw, 'heel'),
         foot: getter(raw, 'foot')
     };
+}
+
+function getWorkingLegPoints(raw, smoothed = true) {
+    return getLegPoints(raw, lockedLeg, smoothed);
 }
 
 function dist2(a, b) {
@@ -337,14 +474,393 @@ function dist2(a, b) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function evaluateTrackingQuality(raw) {
-    const pts = getWorkingLegPoints(raw, false);
+function clamp01(value) {
+    return Math.max(0, Math.min(1, value));
+}
+
+function safeSegmentRatio(hk, ka) {
+    return hk / Math.max(0.001, ka);
+}
+
+function vectorBetween(a, b) {
+    return { x: b.x - a.x, y: b.y - a.y };
+}
+
+function vectorLength(v) {
+    return Math.sqrt(v.x * v.x + v.y * v.y);
+}
+
+function normalizedDot(a, b) {
+    const la = vectorLength(a);
+    const lb = vectorLength(b);
+    if (la < 0.001 || lb < 0.001) return 0;
+    return (a.x * b.x + a.y * b.y) / (la * lb);
+}
+
+function mean(values) {
+    if (!values.length) return 0;
+    return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function normalizeVector(v, fallback = { x: 1, y: 0 }) {
+    const len = vectorLength(v);
+    if (len < 0.001) return { ...fallback };
+    return { x: v.x / len, y: v.y / len };
+}
+
+function angleBetweenVectorsDeg(a, b) {
+    const dot = clamp(normalizedDot(a, b), -1, 1);
+    return Math.acos(dot) * 180 / Math.PI;
+}
+
+function resetTargetLimbProfile(reason = 'reset') {
+    targetLimbProfile = null;
+    targetProfileSamples = [];
+    targetProfileReady = false;
+    motionLockState = null;
+    motionLockSource = 'manual';
+    motionLockScores = { left: 0, right: 0 };
+    motionLockReason = reason;
+    pendingPhysicalLeg = null;
+    pendingPhysicalLegFrames = 0;
+    pendingPhysicalLegStart = null;
+    trackingUncertain = false;
+    lastUncertainReason = reason;
+}
+
+
+function createMotionLockState() {
+    const now = performance.now();
+    return {
+        start: now,
+        lastUpdate: now,
+        samples: { left: [], right: [] },
+        decided: false
+    };
+}
+
+function makeMotionSample(raw, leg, now = performance.now()) {
+    const pts = getLegPoints(raw, leg, false);
+    const hk = dist2(pts.hip, pts.knee);
+    const ka = dist2(pts.knee, pts.ankle);
+    const kh = dist2(pts.knee, pts.heel);
+    const avgVis = ((pts.hip.visibility ?? 0) + (pts.knee.visibility ?? 0) + (pts.ankle.visibility ?? 0) + (pts.heel.visibility ?? 0)) / 4;
+    const angle = (avgVis > 0.25 && hk > 0.02 && ka > 0.02) ? angle3(pts.hip, pts.knee, pts.ankle) : null;
+    return { t: now, pts, hk, ka, kh, avgVis, angle };
+}
+
+function rangeOf(values) {
+    const finite = values.filter(Number.isFinite);
+    if (!finite.length) return 0;
+    return Math.max(...finite) - Math.min(...finite);
+}
+
+function cumulativeTravel(samples, pointName) {
+    let total = 0;
+    for (let i = 1; i < samples.length; i++) {
+        total += dist2(samples[i - 1].pts[pointName], samples[i].pts[pointName]);
+    }
+    return total;
+}
+
+function stableSegmentBonus(samples) {
+    if (samples.length < 4) return 0;
+    const hkRange = rangeOf(samples.map(s => s.hk));
+    const kaRange = rangeOf(samples.map(s => s.ka));
+    const hkAvg = mean(samples.map(s => s.hk));
+    const kaAvg = mean(samples.map(s => s.ka));
+    const hkRel = hkRange / Math.max(0.001, hkAvg);
+    const kaRel = kaRange / Math.max(0.001, kaAvg);
+    return Math.max(0, 18 - (hkRel + kaRel) * 22);
+}
+
+function getMovementPattern(key) {
+    if (MOVEMENT_PATTERNS[key]) return MOVEMENT_PATTERNS[key];
+    return MOVEMENT_PATTERNS.default;
+}
+
+const MOVEMENT_PATTERNS = {
+    heel_slide: {
+        label: 'heel slide',
+        score(samples) {
+            const good = samples.filter(s => s.avgVis > 0.42 && Number.isFinite(s.angle));
+            if (good.length < 4) return 0;
+            const angleRange = rangeOf(good.map(s => s.angle));
+            const heelTravel = cumulativeTravel(good, 'heel');
+            const ankleTravel = cumulativeTravel(good, 'ankle');
+            const kneeTravel = cumulativeTravel(good, 'knee');
+            const hipTravel = cumulativeTravel(good, 'hip');
+            const vis = mean(good.map(s => s.avgVis));
+            // Heel slide signature: knee angle changes and the heel/contact point slides while hip stays stable.
+            return (angleRange * 1.35) + (heelTravel * 285) + (ankleTravel * 110) + (kneeTravel * 70) - (hipTravel * 120) + stableSegmentBonus(good) + (vis * 8);
+        }
+    },
+    slr: {
+        label: 'straight leg raise',
+        score(samples) {
+            const good = samples.filter(s => s.avgVis > 0.42 && Number.isFinite(s.angle));
+            if (good.length < 4) return 0;
+            const ankleTravel = cumulativeTravel(good, 'ankle');
+            const kneeTravel = cumulativeTravel(good, 'knee');
+            const hipTravel = cumulativeTravel(good, 'hip');
+            const kneeAngleStability = Math.max(0, 18 - rangeOf(good.map(s => s.angle)) * 0.5);
+            // SLR signature: knee+ankle move together while knee angle stays fairly straight.
+            return (ankleTravel * 250) + (kneeTravel * 180) - (hipTravel * 90) + kneeAngleStability + stableSegmentBonus(good);
+        }
+    },
+    ankle_pumps: {
+        label: 'ankle pumps',
+        score(samples) {
+            const good = samples.filter(s => s.avgVis > 0.42 && Number.isFinite(s.angle));
+            if (good.length < 4) return 0;
+            const ankleTravel = cumulativeTravel(good, 'ankle');
+            const kneeTravel = cumulativeTravel(good, 'knee');
+            return (ankleTravel * 260) - (kneeTravel * 120) + stableSegmentBonus(good);
+        }
+    },
+    default: {
+        label: 'generic rehab movement',
+        score(samples) {
+            const good = samples.filter(s => s.avgVis > 0.42 && Number.isFinite(s.angle));
+            if (good.length < 4) return 0;
+            const angleRange = rangeOf(good.map(s => s.angle));
+            const ankleTravel = cumulativeTravel(good, 'ankle');
+            const kneeTravel = cumulativeTravel(good, 'knee');
+            const hipTravel = cumulativeTravel(good, 'hip');
+            return (angleRange * 0.95) + (ankleTravel * 180) + (kneeTravel * 120) - (hipTravel * 80) + stableSegmentBonus(good);
+        }
+    }
+};
+
+function collectMotionLockFrame(raw) {
+    if (!motionLockState) motionLockState = createMotionLockState();
+    const now = performance.now();
+    motionLockState.lastUpdate = now;
+    ['left', 'right'].forEach(leg => {
+        const sample = makeMotionSample(raw, leg, now);
+        motionLockState.samples[leg].push(sample);
+        if (motionLockState.samples[leg].length > 90) motionLockState.samples[leg].shift();
+    });
+
+    const pattern = getMovementPattern(currentEx?.key || 'default');
+    motionLockScores = {
+        left: Math.max(0, pattern.score(motionLockState.samples.left)),
+        right: Math.max(0, pattern.score(motionLockState.samples.right))
+    };
+
+    const sampleCount = Math.min(motionLockState.samples.left.length, motionLockState.samples.right.length);
+    const elapsed = now - motionLockState.start;
+    const leftWins = motionLockScores.left > motionLockScores.right + MOTION_LOCK_MARGIN;
+    const rightWins = motionLockScores.right > motionLockScores.left + MOTION_LOCK_MARGIN;
+    const winner = leftWins ? 'left' : rightWins ? 'right' : null;
+    const winningScore = winner ? motionLockScores[winner] : Math.max(motionLockScores.left, motionLockScores.right);
+    const enoughSamples = sampleCount >= MOTION_OBSERVE_MIN_SAMPLES;
+    const enoughTime = elapsed >= MOTION_OBSERVE_MS;
+
+    if ((winner && enoughSamples && winningScore >= MOTION_LOCK_MIN_SCORE && elapsed >= 900) || (winner && enoughTime)) {
+        return finalizeMotionLock(winner, pattern.label);
+    }
+
+    if (enoughTime && enoughSamples) {
+        // Ambiguous motion. Fall back to selected leg, but explicitly mark that this was not a strong motion lock.
+        return finalizeMotionLock(workingLeg, pattern.label, 'ambiguous motion fallback');
+    }
+
+    motionLockReason = `${pattern.label}: L ${Math.round(motionLockScores.left)} / R ${Math.round(motionLockScores.right)}`;
+    return null;
+}
+
+function finalizeMotionLock(leg, patternLabel = 'movement', reason = 'motion signature') {
+    if (!motionLockState) return null;
+    lockedLeg = leg === 'right' ? 'right' : 'left';
+    motionLockSource = reason === 'motion signature' ? 'motion' : 'manual-fallback';
+    motionLockReason = `${reason}: ${lockedLeg} · ${patternLabel} · L ${Math.round(motionLockScores.left)} / R ${Math.round(motionLockScores.right)}`;
+
+    targetProfileSamples = [];
+    const sourceSamples = motionLockState.samples[lockedLeg] || [];
+    sourceSamples.slice(-TARGET_PROFILE_MAX_SAMPLES).forEach(sample => {
+        if (sample.avgVis < 0.38 || sample.hk < 0.04 || sample.ka < 0.04) return;
+        targetProfileSamples.push({
+            leg: lockedLeg,
+            hk: sample.hk,
+            ka: sample.ka,
+            kh: sample.kh || dist2(sample.pts.knee, sample.pts.heel),
+            ah: dist2(sample.pts.ankle, sample.pts.heel),
+            ratio: safeSegmentRatio(sample.hk, sample.ka),
+            kneeX: sample.pts.knee.x,
+            kneeY: sample.pts.knee.y,
+            ankleX: sample.pts.ankle.x,
+            ankleY: sample.pts.ankle.y,
+            heelX: sample.pts.heel.x,
+            heelY: sample.pts.heel.y,
+            hipX: sample.pts.hip.x,
+            hipY: sample.pts.hip.y,
+            kaVec: vectorBetween(sample.pts.knee, sample.pts.ankle),
+            khVec: vectorBetween(sample.pts.knee, sample.pts.heel),
+            ankleHeelVec: vectorBetween(sample.pts.ankle, sample.pts.heel),
+        });
+    });
+    finalizeTargetLimbProfile();
+    motionLockState.decided = true;
+    return lockedLeg;
+}
+
+function beginMotionObservation() {
+    resetTargetLimbProfile('motion observation started');
+    motionLockState = createMotionLockState();
+    motionLockSource = 'observing';
+    motionLockScores = { left: 0, right: 0 };
+    motionLockReason = 'watching for working-leg movement';
+    updateTrackingQualityUI(0, 'identify working leg');
+}
+
+function collectTargetLimbSample(pts, leg = lockedLeg) {
+    if (!pts) return;
+    const hk = dist2(pts.hip, pts.knee);
+    const ka = dist2(pts.knee, pts.ankle);
+    const kh = pts.heel ? dist2(pts.knee, pts.heel) : ka;
+    const ah = pts.heel ? dist2(pts.ankle, pts.heel) : 0;
+    if (hk < 0.04 || ka < 0.04 || kh < 0.04 || hk > 0.65 || ka > 0.65 || kh > 0.75) return;
+
+    targetProfileSamples.push({
+        leg,
+        hk,
+        ka,
+        kh,
+        ah,
+        ratio: safeSegmentRatio(hk, ka),
+        kneeX: pts.knee.x,
+        kneeY: pts.knee.y,
+        ankleX: pts.ankle.x,
+        ankleY: pts.ankle.y,
+        heelX: pts.heel?.x ?? pts.ankle.x,
+        heelY: pts.heel?.y ?? pts.ankle.y,
+        hipX: pts.hip.x,
+        hipY: pts.hip.y,
+        kaVec: vectorBetween(pts.knee, pts.ankle),
+        khVec: vectorBetween(pts.knee, pts.heel || pts.ankle),
+        ankleHeelVec: pts.heel ? vectorBetween(pts.ankle, pts.heel) : { x: 0, y: 0 },
+    });
+
+    if (targetProfileSamples.length > TARGET_PROFILE_MAX_SAMPLES) {
+        targetProfileSamples.shift();
+    }
+}
+
+function finalizeTargetLimbProfile() {
+    if (targetProfileSamples.length < TARGET_PROFILE_MIN_SAMPLES) return null;
+
+    const profile = {
+        createdAt: performance.now(),
+        samples: targetProfileSamples.length,
+        leg: lockedLeg,
+        hk: mean(targetProfileSamples.map(s => s.hk)),
+        ka: mean(targetProfileSamples.map(s => s.ka)),
+        kh: mean(targetProfileSamples.map(s => s.kh || s.ka)),
+        ah: mean(targetProfileSamples.map(s => s.ah || 0)),
+        ratio: mean(targetProfileSamples.map(s => s.ratio)),
+        knee: {
+            x: mean(targetProfileSamples.map(s => s.kneeX)),
+            y: mean(targetProfileSamples.map(s => s.kneeY)),
+        },
+        ankle: {
+            x: mean(targetProfileSamples.map(s => s.ankleX)),
+            y: mean(targetProfileSamples.map(s => s.ankleY)),
+        },
+        heel: {
+            x: mean(targetProfileSamples.map(s => s.heelX ?? s.ankleX)),
+            y: mean(targetProfileSamples.map(s => s.heelY ?? s.ankleY)),
+        },
+        hip: {
+            x: mean(targetProfileSamples.map(s => s.hipX)),
+            y: mean(targetProfileSamples.map(s => s.hipY)),
+        },
+        kaVec: {
+            x: mean(targetProfileSamples.map(s => s.kaVec.x)),
+            y: mean(targetProfileSamples.map(s => s.kaVec.y)),
+        },
+        khVec: {
+            x: mean(targetProfileSamples.map(s => (s.khVec || s.kaVec).x)),
+            y: mean(targetProfileSamples.map(s => (s.khVec || s.kaVec).y)),
+        },
+        ankleHeelVec: {
+            x: mean(targetProfileSamples.map(s => (s.ankleHeelVec || {x:0,y:0}).x)),
+            y: mean(targetProfileSamples.map(s => (s.ankleHeelVec || {x:0,y:0}).y)),
+        }
+    };
+
+    targetLimbProfile = profile;
+    targetProfileReady = true;
+    pendingPhysicalLeg = null;
+    pendingPhysicalLegFrames = 0;
+    pendingPhysicalLegStart = null;
+    return profile;
+}
+
+function targetProfilePenalty(pts, hk, ka) {
+    if (!targetLimbProfile) return { penalty: 0, reason: null, match: 100 };
+
+    let penalty = 0;
+    let reason = null;
+    const ratio = safeSegmentRatio(hk, ka);
+    const ratioErr = Math.abs(ratio - targetLimbProfile.ratio) / Math.max(0.001, targetLimbProfile.ratio);
+    const hkErr = Math.abs(hk - targetLimbProfile.hk) / Math.max(0.001, targetLimbProfile.hk);
+    const kaErr = Math.abs(ka - targetLimbProfile.ka) / Math.max(0.001, targetLimbProfile.ka);
+
+    if (ratioErr > 0.36 || hkErr > 0.42 || kaErr > 0.46) {
+        penalty += 42;
+        reason = 'target limb mismatch';
+    } else if (ratioErr > 0.22 || hkErr > 0.28 || kaErr > 0.32) {
+        penalty += 24;
+        reason = 'target profile drift';
+    }
+
+    // Vertical band is a soft clue, not a hard rule. During heel slides the knee moves,
+    // but it should not suddenly jump to the resting leg's whole screen band.
+    const kneeBand = Math.abs(pts.knee.y - targetLimbProfile.knee.y);
+    const ankleBand = Math.abs(pts.ankle.y - targetLimbProfile.ankle.y);
+    if (kneeBand > 0.30 || ankleBand > 0.35) {
+        penalty += 18;
+        reason = reason || 'outside target limb region';
+    }
+
+    const currentVec = vectorBetween(pts.knee, pts.ankle);
+    const dot = normalizedDot(currentVec, targetLimbProfile.kaVec);
+    if (dot < -0.15) {
+        penalty += 32;
+        reason = reason || 'limb direction flipped';
+    } else if (dot < 0.15) {
+        penalty += 12;
+        reason = reason || 'limb direction uncertain';
+    }
+
+    const match = Math.max(0, Math.min(100, 100 - penalty));
+    return { penalty, reason, match };
+}
+
+function scoreLegCandidate(raw, leg) {
+    const pts = getLegPoints(raw, leg, false);
     const required = [pts.hip, pts.knee, pts.ankle];
     const avgVis = required.reduce((sum, p) => sum + (p.visibility ?? 0), 0) / required.length;
     let score = Math.round(avgVis * 100);
     const reasons = [];
 
     if (avgVis < 0.45) reasons.push('show hip, knee, ankle');
+
+    const sh = pts.shoulder;
+    const torso = dist2(sh, pts.hip);
+    if ((sh.visibility ?? 0) > 0.35 && (pts.hip.visibility ?? 0) > 0.35) {
+        if (torso < 0.035) { score -= 18; reasons.push('torso collapsed'); }
+        if (torso > 0.48) { score -= 30; reasons.push('leg disconnected from body'); }
+        if (pts.hip.y < sh.y - 0.14) { score -= 22; reasons.push('body geometry invalid'); }
+    } else {
+        score -= 6;
+    }
+
     if (required.some(p => p.x < -0.04 || p.x > 1.04 || p.y < -0.04 || p.y > 1.04)) {
         score -= 18;
         reasons.push('body partly out of frame');
@@ -352,13 +868,31 @@ function evaluateTrackingQuality(raw) {
 
     const hk = dist2(pts.hip, pts.knee);
     const ka = dist2(pts.knee, pts.ankle);
-    if (hk < 0.04 || ka < 0.04) {
-        score -= 25;
-        reasons.push('leg landmarks collapsed');
+    if (hk < 0.04 || ka < 0.04) { score -= 25; reasons.push('leg landmarks collapsed'); }
+    if (hk > 0.65 || ka > 0.65) { score -= 15; reasons.push('camera too close / distorted'); }
+
+    // Same-limb chain validation: a real femur/tibia chain should not change length suddenly.
+    // This catches frames where MediaPipe mixes hip/knee from one leg with ankle from the other.
+    if (lastGoodSegmentLengths) {
+        const hkRatio = hk / Math.max(0.001, lastGoodSegmentLengths.hk);
+        const kaRatio = ka / Math.max(0.001, lastGoodSegmentLengths.ka);
+        const hkBad = hkRatio < 0.62 || hkRatio > 1.55;
+        const kaBad = kaRatio < 0.58 || kaRatio > 1.65;
+        if (hkBad || kaBad) {
+            score -= hkBad && kaBad ? 42 : 26;
+            reasons.push(hkBad && kaBad ? 'segment length mismatch' : (hkBad ? 'hip-knee mismatch' : 'knee-ankle mismatch'));
+        }
     }
-    if (hk > 0.65 || ka > 0.65) {
-        score -= 15;
-        reasons.push('camera too close / distorted');
+
+    // Heel slides are knee anchored. If the knee stays near the old knee but ankle jumps,
+    // it is usually the opposite leg/foot being selected. Penalize that heavily.
+    if (lastGoodPts && currentEx?.key === 'heel_slide') {
+        const kneeJump = dist2(pts.knee, lastGoodPts.knee);
+        const ankleJump = dist2(pts.ankle, lastGoodPts.ankle);
+        if (kneeJump < 0.10 && ankleJump > 0.16) {
+            score -= 38;
+            reasons.push('ankle switched leg');
+        }
     }
 
     let rawAngle = null;
@@ -367,37 +901,528 @@ function evaluateTrackingQuality(raw) {
         if (rawAngle < 5 || rawAngle > 178) score -= 6;
         if (lastGoodAngle !== null) {
             const jump = Math.abs(rawAngle - lastGoodAngle);
-            if (jump > 45) {
-                score -= 35;
-                reasons.push('angle jumped');
-            } else if (jump > 28) {
-                score -= 18;
-                reasons.push('angle unstable');
-            }
+            if (jump > 45) { score -= 35; reasons.push('angle jumped'); }
+            else if (jump > 28) { score -= 18; reasons.push('angle unstable'); }
         }
     } else {
         score -= 20;
         reasons.push('angle unavailable');
     }
 
+    // Physical limb continuity: once a limb is being tracked, choose the candidate
+    // closest to the last good hip/knee/ankle rather than blindly trusting MediaPipe's left/right labels.
+    let anchorDist = null;
     if (lastGoodPts) {
         const kneeJump = dist2(pts.knee, lastGoodPts.knee);
         const ankleJump = dist2(pts.ankle, lastGoodPts.ankle);
         const hipJump = dist2(pts.hip, lastGoodPts.hip);
-        if (kneeJump > 0.18 || ankleJump > 0.22 || hipJump > 0.16) {
-            score -= 30;
-            reasons.push('joint teleport');
+        anchorDist = kneeJump * 1.65 + ankleJump * 1.15 + hipJump * 0.75;
+
+        score -= Math.min(65, Math.round(anchorDist * 160));
+        if (anchorDist > 0.24 || kneeJump > 0.15 || ankleJump > 0.20 || hipJump > 0.14) {
+            score -= 25;
+            reasons.push('wrong physical limb');
         }
+    } else if (leg !== workingLeg) {
+        // Before physical lock exists, prefer the user-selected leg unless the other leg is clearly better.
+        score -= 12;
+    }
+
+    const profileCheck = targetProfilePenalty(pts, hk, ka);
+    if (profileCheck.penalty > 0) {
+        score -= profileCheck.penalty;
+        if (profileCheck.reason) reasons.push(profileCheck.reason);
     }
 
     score = Math.max(0, Math.min(100, score));
     return {
+        leg,
         score,
-        ok: score >= 58,
+        ok: score >= ACCEPT_QUALITY_MIN,
         rawAngle,
         pts,
+        anchorDist,
+        targetMatch: profileCheck.match,
         reason: reasons.length ? reasons[0] : 'good tracking'
     };
+}
+
+function evaluateTrackingQuality(raw) {
+    const candidates = [scoreLegCandidate(raw, 'left'), scoreLegCandidate(raw, 'right')];
+    const current = candidates.find(c => c.leg === lockedLeg) || candidates[0];
+    const best = candidates.slice().sort((a, b) => b.score - a.score)[0];
+    const now = performance.now();
+
+    let chosen = current;
+    trackingUncertain = false;
+    lastUncertainReason = '—';
+
+    if (!lastGoodPts && !targetLimbProfile) {
+        // Before the target identity exists, honor the user's starting selection unless the other leg is clearly better.
+        const selected = candidates.find(c => c.leg === workingLeg) || current;
+        chosen = best.score > selected.score + 24 ? best : selected;
+        lockedLeg = chosen.leg;
+        return chosen;
+    }
+
+    // Motion-locked mode: do not chase the other leg during overlap.
+    // If the target limb becomes uncertain, pause/hold ROM rather than switching to a plausible wrong limb.
+    if (targetProfileReady && motionLockSource === 'motion') {
+        if (current.score >= ACCEPT_QUALITY_MIN - 6 && current.targetMatch >= 54) {
+            return current;
+        }
+        if (best.leg !== lockedLeg && best.score > current.score + HARD_SWITCH_MARGIN && best.targetMatch >= 86) {
+            if (pendingPhysicalLeg === best.leg && pendingPhysicalLegStart !== null) {
+                pendingPhysicalLegFrames++;
+            } else {
+                pendingPhysicalLeg = best.leg;
+                pendingPhysicalLegFrames = 1;
+                pendingPhysicalLegStart = now;
+            }
+            if ((now - pendingPhysicalLegStart) >= 1200 && pendingPhysicalLegFrames >= 6) {
+                lockedLeg = best.leg;
+                pendingPhysicalLeg = null;
+                pendingPhysicalLegFrames = 0;
+                pendingPhysicalLegStart = null;
+                return best;
+            }
+        }
+        trackingUncertain = true;
+        lastUncertainReason = current.reason || 'target limb uncertain';
+        return { ...current, ok: false, reason: current.reason === 'good tracking' ? 'target limb uncertain' : current.reason };
+    }
+
+    if (best.leg !== lockedLeg && best.score > current.score + SWITCH_MARGIN) {
+        const passesTargetGate = !targetLimbProfile || best.targetMatch >= 70;
+        const veryStrongWin = best.score > current.score + HARD_SWITCH_MARGIN && passesTargetGate;
+
+        if (passesTargetGate) {
+            if (pendingPhysicalLeg === best.leg && pendingPhysicalLegStart !== null) {
+                pendingPhysicalLegFrames++;
+            } else {
+                pendingPhysicalLeg = best.leg;
+                pendingPhysicalLegFrames = 1;
+                pendingPhysicalLegStart = now;
+            }
+
+            const heldLongEnough = (now - pendingPhysicalLegStart) >= SWITCH_HOLD_MS;
+            const enoughFrames = pendingPhysicalLegFrames >= 4;
+
+            if ((heldLongEnough && enoughFrames) || veryStrongWin) {
+                lockedLeg = best.leg;
+                chosen = best;
+                pendingPhysicalLeg = null;
+                pendingPhysicalLegFrames = 0;
+                pendingPhysicalLegStart = null;
+            } else {
+                trackingUncertain = true;
+                lastUncertainReason = `holding target limb · candidate ${best.leg}`;
+                chosen = {
+                    ...current,
+                    score: Math.max(0, Math.min(current.score, best.score - 10)),
+                    ok: current.score >= ACCEPT_QUALITY_MIN,
+                    reason: 'holding target limb lock'
+                };
+            }
+        } else {
+            trackingUncertain = true;
+            lastUncertainReason = `other limb rejected · ${best.reason}`;
+            pendingPhysicalLeg = null;
+            pendingPhysicalLegFrames = 0;
+            pendingPhysicalLegStart = null;
+            chosen = { ...current, reason: current.reason === 'good tracking' ? 'other limb rejected' : current.reason };
+        }
+    } else {
+        pendingPhysicalLeg = null;
+        pendingPhysicalLegFrames = 0;
+        pendingPhysicalLegStart = null;
+
+        // If current limb is still plausible, stay locked even if the other limb is only slightly better.
+        if (current.score >= Math.max(ACCEPT_QUALITY_MIN - 8, best.score - 14)) {
+            chosen = current;
+        } else {
+            chosen = best;
+            if (chosen.score >= ACCEPT_QUALITY_MIN && (!targetLimbProfile || chosen.targetMatch >= 70)) {
+                lockedLeg = chosen.leg;
+            }
+        }
+    }
+
+    if (targetLimbProfile && chosen.targetMatch < 58) {
+        trackingUncertain = true;
+        lastUncertainReason = chosen.reason || 'target limb lost';
+        chosen = { ...chosen, ok: false, reason: chosen.reason || 'target limb lost' };
+    }
+
+    return chosen;
+}
+
+function tuneFiltersForMotion(rawVelDegPerSec = 0) {
+    const calibrating = calState === 'waiting_pos1' || calState === 'waiting_pos2';
+    const holding = phase === 'hold' || phase === 'straight';
+
+    let landmarkMin = 0.72, landmarkBeta = 0.018;
+    let angleMin = 0.9, angleBeta = 0.018;
+
+    if (calibrating || holding) {
+        // Stronger smoothing when the user should be still.
+        landmarkMin = 0.62; landmarkBeta = 0.012;
+        angleMin = 0.75; angleBeta = 0.012;
+    } else if (rawVelDegPerSec > 90) {
+        // Open the filter during fast motion to reduce lag, then the app can cue “slow down.”
+        landmarkMin = 1.35; landmarkBeta = 0.055;
+        angleMin = 1.9; angleBeta = 0.075;
+    } else if (rawVelDegPerSec > 35) {
+        landmarkMin = 1.05; landmarkBeta = 0.038;
+        angleMin = 1.35; angleBeta = 0.05;
+    }
+
+    Object.values(landmarkFilters).forEach(f => {
+        f.x.setTuning(landmarkMin, landmarkBeta, 1.0);
+        f.y.setTuning(landmarkMin, landmarkBeta, 1.0);
+    });
+    angleFilter.setTuning(angleMin, angleBeta, 1.0);
+}
+
+
+function getShinLengthRef(knee, rawAnkle) {
+    if (targetLimbProfile?.ka && targetLimbProfile.ka > 0.03) return targetLimbProfile.ka;
+    if (lastGoodSegmentLengths?.ka && lastGoodSegmentLengths.ka > 0.03) return lastGoodSegmentLengths.ka;
+    if (lastGoodPts?.knee && lastGoodPts?.ankle) return dist2(lastGoodPts.knee, lastGoodPts.ankle);
+    return Math.max(0.04, dist2(knee, rawAnkle));
+}
+
+function getHeelLengthRef(knee, rawHeel) {
+    if (targetLimbProfile?.kh && targetLimbProfile.kh > 0.03) return targetLimbProfile.kh;
+    if (lastGoodPts?.knee && lastGoodPts?.heel) return dist2(lastGoodPts.knee, lastGoodPts.heel);
+    return Math.max(0.04, dist2(knee, rawHeel));
+}
+
+function getAnkleHeelOffsetRef() {
+    if (targetLimbProfile?.ankleHeelVec && vectorLength(targetLimbProfile.ankleHeelVec) > 0.004) {
+        return targetLimbProfile.ankleHeelVec;
+    }
+    if (lastGoodPts?.ankle && lastGoodPts?.heel) {
+        return vectorBetween(lastGoodPts.ankle, lastGoodPts.heel);
+    }
+    return null;
+}
+
+function makeVirtualAnkle(knee, rawAnkle, predictedAnkle, shinLengthRef) {
+    let dir = null;
+    if (predictedAnkle && Number.isFinite(predictedAnkle.x) && Number.isFinite(predictedAnkle.y) && dist2(knee, predictedAnkle) > 0.015) {
+        dir = normalizeVector(vectorBetween(knee, predictedAnkle));
+    } else if (lastKneeToAnkleVec && vectorLength(lastKneeToAnkleVec) > 0.015) {
+        dir = normalizeVector(lastKneeToAnkleVec);
+    } else if (rawAnkle && dist2(knee, rawAnkle) > 0.015) {
+        dir = normalizeVector(vectorBetween(knee, rawAnkle));
+    } else {
+        dir = { x: -1, y: 0.05 };
+    }
+    return {
+        x: knee.x + dir.x * shinLengthRef,
+        y: knee.y + dir.y * shinLengthRef,
+        visibility: 0.35,
+        virtualAnkle: true
+    };
+}
+
+function makeHeelDerivedAnkle(knee, heel, predictedAnkle, shinLengthRef) {
+    const offset = getAnkleHeelOffsetRef();
+    let candidate = null;
+    if (heel && offset && vectorLength(offset) > 0.004) {
+        // offset is ankle→heel, so ankle = heel - offset.
+        candidate = { x: heel.x - offset.x, y: heel.y - offset.y, visibility: heel.visibility ?? 0.55, heelDerived: true };
+    } else if (predictedAnkle) {
+        candidate = predictedAnkle;
+    } else if (lastGoodPts?.ankle) {
+        candidate = lastGoodPts.ankle;
+    }
+
+    if (!candidate) return makeVirtualAnkle(knee, heel, predictedAnkle, shinLengthRef);
+    const dir = normalizeVector(vectorBetween(knee, candidate), lastKneeToAnkleVec ? normalizeVector(lastKneeToAnkleVec) : { x: -1, y: 0.05 });
+    return {
+        x: knee.x + dir.x * shinLengthRef,
+        y: knee.y + dir.y * shinLengthRef,
+        visibility: Math.max(0.35, heel?.visibility ?? 0.45),
+        virtualAnkle: true,
+        heelDerived: true
+    };
+}
+
+function blendPoints(a, b, weightA = 0.7) {
+    const wa = clamp(weightA, 0, 1);
+    const wb = 1 - wa;
+    return {
+        ...b,
+        x: a.x * wa + b.x * wb,
+        y: a.y * wa + b.y * wb,
+        visibility: Math.min(a.visibility ?? 0.45, b.visibility ?? 1),
+        virtualAnkle: true
+    };
+}
+
+function scoreHeelIntegrity(knee, rawHeel, rawPts, predictedHeel) {
+    const heelLengthRef = getHeelLengthRef(knee, rawHeel);
+    const currentLen = dist2(knee, rawHeel);
+    const ratio = currentLen / Math.max(0.001, heelLengthRef);
+    const reasons = [];
+    let score = 0;
+
+    if (ratio >= 0.72 && ratio <= 1.32) score += 25;
+    else if (ratio >= 0.62 && ratio <= 1.45) { score += 12; reasons.push('heel length soft'); }
+    else reasons.push('heel length invalid');
+
+    const heelJump = lastGoodPts?.heel ? dist2(rawHeel, lastGoodPts.heel) : 0;
+    const kneeJump = lastGoodPts?.knee ? dist2(knee, lastGoodPts.knee) : 0;
+    if (!lastGoodPts?.heel) score += 20;
+    else if (kneeJump < 0.08 && heelJump > 0.16) reasons.push('heel teleport');
+    else if (heelJump > 0.24) { score += 6; reasons.push('heel jump soft'); }
+    else score += 20;
+
+    const kalmanReady = trustedKalman.heel?.initialized;
+    const corridorError = kalmanReady && predictedHeel ? dist2(rawHeel, predictedHeel) : 0;
+    if (!kalmanReady) score += 25;
+    else if (corridorError <= 0.09) score += 25;
+    else if (corridorError <= 0.16) { score += 13; reasons.push('heel corridor soft'); }
+    else reasons.push('heel outside corridor');
+
+    const heelConf = rawPts?.heel?.visibility ?? rawHeel.visibility ?? 1;
+    if (heelConf >= 0.68) score += 20;
+    else if (heelConf >= 0.45) { score += 10; reasons.push('heel confidence soft'); }
+    else reasons.push('heel confidence low');
+
+    if (targetLimbProfile?.heel) {
+        const band = Math.abs(rawHeel.y - targetLimbProfile.heel.y);
+        if (band <= 0.18) score += 10;
+        else if (band <= 0.30) { score += 4; reasons.push('heel band soft'); }
+        else reasons.push('heel outside path');
+    } else {
+        score += 10;
+    }
+
+    if (ratio < 0.62 || ratio > 1.45) score = Math.min(score, 45);
+    if (lastGoodPts?.heel && kneeJump < 0.08 && heelJump > 0.16) score = Math.min(score, 50);
+    if (kalmanReady && corridorError > 0.16) score = Math.min(score, 54);
+
+    score = Math.round(clamp(score, 0, 100));
+    return { score, heelLengthRef, ratio, corridorError, heelJump, kneeJump, reason: reasons[0] || 'heel trusted' };
+}
+
+function resolveHeelAnchor(pts, rawPts, quality) {
+    const now = performance.now();
+    const knee = pts.knee;
+    const rawHeel = pts.heel || rawPts?.heel || pts.ankle;
+    const predictedHeel = trustedKalman.heel?.initialized ? trustedKalman.heel.predict(now) : null;
+    const integrity = scoreHeelIntegrity(knee, rawHeel, rawPts, predictedHeel);
+    const trusted = integrity.score >= HEEL_SCORE_TRUSTED;
+    const trust = Math.max(0.2, Math.min(1, (quality?.score ?? 70) / 100));
+    const rawVis = rawPts?.heel?.visibility ?? rawHeel.visibility ?? 1;
+    const measurementTrust = Math.min(trust, Math.max(0.2, rawVis));
+
+    let heel = rawHeel;
+    if (trusted) {
+        const updated = trustedKalman.heel.update(rawHeel, now, measurementTrust);
+        heel = updated.kalmanRejected ? (predictedHeel || lastGoodPts?.heel || rawHeel) : updated;
+    } else if (predictedHeel) {
+        heel = { ...predictedHeel, visibility: 0.35, virtualHeel: true };
+    } else if (lastGoodPts?.heel) {
+        heel = { ...lastGoodPts.heel, visibility: 0.35, virtualHeel: true };
+    }
+
+    lastHeelIntegrityScore = integrity.score;
+    lastHeelIntegrityReason = integrity.reason;
+    lastHeelTrusted = trusted;
+    return { heel, trusted, score: integrity.score, reason: integrity.reason, details: integrity };
+}
+
+function scoreAnkleIntegrity(knee, rawAnkle, rawPts, predictedAnkle, heelAnchor) {
+    const shinLengthRef = getShinLengthRef(knee, rawAnkle);
+    const currentLen = dist2(knee, rawAnkle);
+    const ratio = currentLen / Math.max(0.001, shinLengthRef);
+    const reasons = [];
+    let score = 0;
+
+    if (ratio >= 0.78 && ratio <= 1.22) score += 25;
+    else if (ratio >= 0.68 && ratio <= 1.35) { score += 12; reasons.push('shin length soft'); }
+    else reasons.push('shin length invalid');
+
+    const ankleJump = lastGoodPts ? dist2(rawAnkle, lastGoodPts.ankle) : 0;
+    const kneeJump = lastGoodPts ? dist2(knee, lastGoodPts.knee) : 0;
+    if (!lastGoodPts) score += 16;
+    else if (kneeJump < 0.08 && ankleJump > 0.14) reasons.push('ankle teleport');
+    else if (ankleJump > 0.22) { score += 4; reasons.push('ankle jump soft'); }
+    else score += 16;
+
+    const kalmanReady = trustedKalman.ankle?.initialized;
+    const corridorError = kalmanReady && predictedAnkle ? dist2(rawAnkle, predictedAnkle) : 0;
+    if (!kalmanReady) score += 18;
+    else if (corridorError <= 0.08) score += 18;
+    else if (corridorError <= 0.14) { score += 9; reasons.push('ankle corridor soft'); }
+    else reasons.push('ankle outside corridor');
+
+    const currentVec = vectorBetween(knee, rawAnkle);
+    let vectorAngle = 0;
+    if (!lastKneeToAnkleVec || vectorLength(lastKneeToAnkleVec) < 0.015) score += 12;
+    else {
+        vectorAngle = angleBetweenVectorsDeg(currentVec, lastKneeToAnkleVec);
+        if (vectorAngle <= 30) score += 12;
+        else if (vectorAngle <= 45) { score += 6; reasons.push('shin vector soft'); }
+        else reasons.push('shin vector flipped');
+    }
+
+    // Heel-ankle relationship: if raw ankle drifts toward the forefoot/top-foot, reject it.
+    let heelDerivedError = 0;
+    let heelRelationScore = 0;
+    if (heelAnchor) {
+        const heelDerived = makeHeelDerivedAnkle(knee, heelAnchor, predictedAnkle, shinLengthRef);
+        heelDerivedError = dist2(rawAnkle, heelDerived);
+        if (heelDerivedError <= 0.055) { score += 20; heelRelationScore = 20; }
+        else if (heelDerivedError <= 0.105) { score += 10; heelRelationScore = 10; reasons.push('ankle heel-offset soft'); }
+        else reasons.push('ankle drifting from heel');
+
+        const refAH = targetLimbProfile?.ah || (lastGoodPts?.heel ? dist2(lastGoodPts.ankle, lastGoodPts.heel) : null);
+        if (refAH && refAH > 0.004) {
+            const ah = dist2(rawAnkle, heelAnchor);
+            const ahRatio = ah / Math.max(0.001, refAH);
+            if (ahRatio < 0.45 || ahRatio > 1.85) {
+                reasons.push('ankle-heel offset invalid');
+                score = Math.min(score, 58);
+            }
+        }
+    } else {
+        reasons.push('heel anchor unavailable');
+    }
+
+    const toe = rawPts?.foot;
+    const rawHeel = rawPts?.heel || heelAnchor;
+    if (toe && rawHeel && (toe.visibility ?? 0) > 0.35 && (rawHeel.visibility ?? 0) > 0.35) {
+        const dToe = dist2(rawAnkle, toe);
+        const dHeel = dist2(rawAnkle, rawHeel);
+        if (dToe < dHeel * 0.78) {
+            reasons.push('ankle drifting toward forefoot');
+            score = Math.min(score, 60);
+        }
+    }
+
+    const ankleConf = rawPts?.ankle?.visibility ?? rawAnkle.visibility ?? 1;
+    if (ankleConf >= 0.70) score += 9;
+    else if (ankleConf >= 0.45) { score += 4; reasons.push('ankle confidence soft'); }
+    else reasons.push('ankle confidence low');
+
+    if (ratio < 0.68 || ratio > 1.35) score = Math.min(score, 45);
+    if (lastGoodPts && kneeJump < 0.08 && ankleJump > 0.14) score = Math.min(score, 50);
+    if (kalmanReady && corridorError > 0.14) score = Math.min(score, 54);
+    if (lastKneeToAnkleVec && vectorAngle > 45) score = Math.min(score, 54);
+    if (heelAnchor && heelDerivedError > 0.105) score = Math.min(score, 58);
+
+    score = Math.round(clamp(score, 0, 100));
+    return { score, shinLengthRef, ratio, corridorError, ankleJump, kneeJump, heelDerivedError, heelRelationScore, reason: reasons[0] || 'ankle trusted' };
+}
+
+function updateAnkleIntegrityState(score, reason) {
+    lastAnkleIntegrityScore = score;
+    lastAnkleIntegrityReason = reason;
+    if (score >= ANKLE_SCORE_TRUSTED) {
+        ankleGoodFrames++;
+        ankleBadFrames = 0;
+        ankleQuestionableFrames = 0;
+        const recovered = ankleGoodFrames >= ANKLE_RECOVERY_FRAMES || (score >= ANKLE_FAST_RECOVERY_SCORE && ankleGoodFrames >= ANKLE_FAST_RECOVERY_FRAMES);
+        if (ankleIntegrityState === 'trusted' || recovered) ankleIntegrityState = 'trusted';
+        else ankleIntegrityState = 'questionable';
+    } else if (score >= ANKLE_SCORE_QUESTIONABLE) {
+        ankleGoodFrames = 0;
+        ankleBadFrames = 0;
+        ankleQuestionableFrames++;
+        ankleIntegrityState = 'questionable';
+    } else {
+        ankleGoodFrames = 0;
+        ankleQuestionableFrames = 0;
+        ankleBadFrames++;
+        ankleIntegrityState = 'rejected';
+    }
+    return ankleIntegrityState;
+}
+
+function resolveAnkleIntegrity(pts, rawPts, quality) {
+    const now = performance.now();
+    const knee = pts.knee;
+    const rawAnkle = pts.ankle;
+    const predictedAnkle = trustedKalman.ankle?.initialized ? trustedKalman.ankle.predict(now) : null;
+    const heelResult = resolveHeelAnchor(pts, rawPts, quality);
+    const integrity = scoreAnkleIntegrity(knee, rawAnkle, rawPts, predictedAnkle, heelResult.heel);
+    const state = updateAnkleIntegrityState(integrity.score, integrity.reason);
+    const heelDerivedAnkle = makeHeelDerivedAnkle(knee, heelResult.heel, predictedAnkle, integrity.shinLengthRef);
+    const virtualAnkle = heelResult.trusted
+        ? heelDerivedAnkle
+        : makeVirtualAnkle(knee, rawAnkle, predictedAnkle, integrity.shinLengthRef);
+    const trust = Math.max(0.2, Math.min(1, (quality?.score ?? 70) / 100));
+    const rawVis = rawPts?.ankle?.visibility ?? rawAnkle.visibility ?? 1;
+    const measurementTrust = Math.min(trust, Math.max(0.2, rawVis));
+
+    let ankle = virtualAnkle;
+    let clinicalTrusted = false;
+    if (state === 'trusted' && heelResult.trusted) {
+        const updated = trustedKalman.ankle.update(rawAnkle, now, measurementTrust);
+        if (updated.kalmanRejected) {
+            ankleIntegrityState = 'questionable';
+            ankleGoodFrames = 0;
+            ankleQuestionableFrames++;
+            ankle = heelDerivedAnkle;
+            integrity.reason = 'kalman rejected ankle';
+        } else {
+            ankle = updated;
+            clinicalTrusted = true;
+        }
+    } else if (state === 'questionable') {
+        ankle = heelResult.trusted ? blendPoints(heelDerivedAnkle, rawAnkle, 0.75) : blendPoints(virtualAnkle, rawAnkle, 0.80);
+    }
+
+    const displayDistal = heelResult.heel || ankle;
+    return {
+        ankle: { ...ankle, integrityScore: integrity.score, integrityState: ankleIntegrityState },
+        heel: { ...displayDistal, heelScore: heelResult.score, heelTrusted: heelResult.trusted },
+        foot: { ...displayDistal, integrityScore: integrity.score, integrityState: ankleIntegrityState },
+        displayDistal,
+        clinicalTrusted,
+        score: integrity.score,
+        state: ankleIntegrityState,
+        reason: heelResult.trusted ? integrity.reason : `heel ${heelResult.reason}`,
+        heel: heelResult,
+        details: integrity
+    };
+}
+
+function stabilizeAnkleVector(pts, rawPts) {
+    if (!pts) return pts;
+
+    const ankleConf = rawPts?.ankle?.visibility ?? pts.ankle.visibility ?? 1;
+    const ankleJump = lastGoodPts ? dist2(pts.ankle, lastGoodPts.ankle) : 0;
+    const kneeJump = lastGoodPts ? dist2(pts.knee, lastGoodPts.knee) : 0;
+    const heelSlideAnkleSwitch = currentEx?.key === 'heel_slide' && kneeJump < 0.10 && ankleJump > 0.14;
+    const shouldHoldVector = lastGoodPts && lastKneeToAnkleVec && (ankleConf < 0.55 || ankleJump > 0.18 || heelSlideAnkleSwitch);
+
+    if (shouldHoldVector && ankleVectorHoldFrames < 10) {
+        ankleVectorHoldFrames++;
+        const heldAnkle = {
+            ...pts.ankle,
+            x: pts.knee.x + lastKneeToAnkleVec.x,
+            y: pts.knee.y + lastKneeToAnkleVec.y,
+            visibility: Math.max(0.35, ankleConf)
+        };
+        return {
+            ...pts,
+            ankle: heldAnkle,
+            foot: heldAnkle
+        };
+    }
+
+    ankleVectorHoldFrames = 0;
+    lastKneeToAnkleVec = {
+        x: pts.ankle.x - pts.knee.x,
+        y: pts.ankle.y - pts.knee.y
+    };
+    return pts;
 }
 
 function updateTrackingQualityUI(score = lastTrackingScore, reason = lastTrackingReason) {
@@ -418,15 +1443,58 @@ function updateTrackingQualityUI(score = lastTrackingScore, reason = lastTrackin
     trackingQualityText.textContent = `${score}% · ${reason}`;
 }
 
+
+
+function applyTrustedKalman(pts, rawPts, quality) {
+    if (!pts) return pts;
+    const now = performance.now();
+    const trust = Math.max(0.2, Math.min(1, (quality?.score ?? 70) / 100));
+    const out = { ...pts };
+
+    ['hip', 'knee'].forEach(name => {
+        const src = pts[name];
+        if (!src || !trustedKalman[name]) return;
+        const rawVis = rawPts?.[name]?.visibility ?? src.visibility ?? 1;
+        const measurementTrust = Math.min(trust, Math.max(0.2, rawVis));
+        out[name] = trustedKalman[name].update(src, now, measurementTrust);
+    });
+
+    const ankleResult = resolveAnkleIntegrity({ ...pts, hip: out.hip, knee: out.knee }, rawPts, quality);
+    out.ankle = ankleResult.ankle;
+    out.heel = ankleResult.heel;
+    out.foot = ankleResult.foot;
+    out.displayDistal = ankleResult.displayDistal;
+    out.ankleIntegrity = ankleResult;
+    out.clinicalTrusted = ankleResult.clinicalTrusted;
+
+    trackingUncertain = !ankleResult.clinicalTrusted;
+    lastUncertainReason = ankleResult.clinicalTrusted ? 'trusted' : `${ankleResult.state}: ${ankleResult.reason}`;
+
+    if (!ankleResult.clinicalTrusted) {
+        debugLastDecision = `ankle ${ankleResult.state} · ${ankleResult.score}% · ${ankleResult.reason}`;
+    }
+
+    return out;
+}
+
+
 function drawSmoothedWorkingLeg(pts) {
     if (!pts) return;
+    const state = pts.ankleIntegrity?.state || (pts.clinicalTrusted === false ? 'questionable' : 'trusted');
+    const alpha = state === 'trusted' ? 0.95 : (state === 'questionable' ? 0.55 : 0.34);
+    const lineWidth = state === 'trusted' ? 5 : 4;
+
     ctx.save();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(45, 212, 191, 0.95)';
-    ctx.fillStyle = '#38BDF8';
-    ctx.shadowColor = 'rgba(56,189,248,0.55)';
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = state === 'trusted' ? 'rgba(45, 212, 191, 0.95)' : 'rgba(255, 183, 77, 0.90)';
+    ctx.fillStyle = state === 'trusted' ? '#38BDF8' : '#FFB74D';
+    ctx.shadowColor = state === 'trusted' ? 'rgba(56,189,248,0.55)' : 'rgba(255,183,77,0.35)';
     ctx.shadowBlur = 8;
-    const chain = [pts.hip, pts.knee, pts.ankle, pts.foot];
+
+    const chain = [pts.hip, pts.knee, pts.displayDistal || pts.heel || pts.ankle];
+    if (state !== 'trusted') ctx.setLineDash([10, 8]);
+
     ctx.beginPath();
     chain.forEach((p, i) => {
         const x = p.x * canvasEl.width;
@@ -435,11 +1503,12 @@ function drawSmoothedWorkingLeg(pts) {
         else ctx.lineTo(x, y);
     });
     ctx.stroke();
-    chain.forEach(p => {
+
+    chain.forEach((p, i) => {
         const x = p.x * canvasEl.width;
         const y = p.y * canvasEl.height;
         ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.arc(x, y, i === 2 && state !== 'trusted' ? 6 : 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#061D24';
         ctx.lineWidth = 2;
@@ -452,8 +1521,31 @@ function resetKF(){
     Object.values(landmarkFilters).forEach(f => { f.x.reset(); f.y.reset(); });
     angleFilter.reset();
     velocityFilter.reset();
+    Object.values(trustedKalman).forEach(k => k.reset());
     lastGoodPts = null;
     lastGoodAngle = null;
+    lastKneeToAnkleVec = null;
+    lastGoodSegmentLengths = null;
+    velocityAngleLast = null;
+    velocityTimeLast = null;
+    velocityDebugLast = 0;
+    velHist = [];
+    lastVelT = performance.now();
+    ankleVectorHoldFrames = 0;
+    pendingPhysicalLeg = null;
+    pendingPhysicalLegFrames = 0;
+    pendingPhysicalLegStart = null;
+    trackingUncertain = false;
+    lastUncertainReason = 'reset';
+    ankleIntegrityState = 'trusted';
+    ankleGoodFrames = 0;
+    ankleBadFrames = 0;
+    ankleQuestionableFrames = 0;
+    lastAnkleIntegrityScore = 0;
+    lastAnkleIntegrityReason = 'reset';
+    lastHeelIntegrityScore = 0;
+    lastHeelIntegrityReason = 'reset';
+    lastHeelTrusted = false;
     badTrackingFrames = 0;
     goodTrackingFrames = 0;
 }
@@ -464,13 +1556,14 @@ function setWorkingLeg(leg) {
     localStorage.setItem('rehabWorkingLeg', workingLeg);
     legLeftBtn?.classList.toggle('active', workingLeg === 'left');
     legRightBtn?.classList.toggle('active', workingLeg === 'right');
+    resetTargetLimbProfile('working leg changed');
     resetKF();
     updateTrackingQualityUI(0, `${workingLeg} leg selected`);
 }
 
 legLeftBtn?.addEventListener('click', () => setWorkingLeg('left'));
 legRightBtn?.addEventListener('click', () => setWorkingLeg('right'));
-setWorkingLeg(workingLeg);
+// setWorkingLeg(workingLeg) is called after engine state is declared during window load.
 // ================================================================
 // ENGINE STATE
 // ================================================================
@@ -573,6 +1666,42 @@ function updateVelocityZone(){
     zone.style.width = (right - left) + '%';
 }
 
+// Shared velocity update used by both live camera and uploaded test videos.
+// It intentionally uses performance.now() in both modes so Test Video Mode behaves like a live camera stream.
+function updateVelocityFromAngle(angle) {
+    if (!Number.isFinite(angle)) return;
+
+    const now = performance.now();
+    if (velocityAngleLast === null || velocityTimeLast === null) {
+        velocityAngleLast = angle;
+        velocityTimeLast = now;
+        lastVelT = now;
+        return;
+    }
+
+    const dt = Math.max(0.001, (now - velocityTimeLast) / 1000);
+    // Avoid bogus spikes after pauses, tab switches, or frame stepping delays.
+    if (dt > 0.75) {
+        velocityAngleLast = angle;
+        velocityTimeLast = now;
+        lastVelT = now;
+        return;
+    }
+
+    const instantVel = Math.abs(angle - velocityAngleLast) / dt;
+    velocityDebugLast = instantVel;
+    const filteredVel = velocityFilter.filter(instantVel, now);
+
+    velHist.push(filteredVel);
+    if (velHist.length > 6) velHist.shift();
+    const avg = velHist.reduce((a, b) => a + b, 0) / velHist.length;
+    updateVelBand(avg);
+
+    velocityAngleLast = angle;
+    velocityTimeLast = now;
+    lastVelT = now;
+}
+
 // ================================================================
 // FORM STATUS CARD
 // ================================================================
@@ -601,27 +1730,42 @@ exDropdown.addEventListener('change',()=>{
 });
 
 function loadPhase(p){
-    currentPhase=p;
-    const meta=PHASE_META[p];
-    progressLabel.textContent=`Post-Meniscus · ${meta.label}: ${meta.weeks} · ${meta.desc}`;
-    // Rebuild exercise dropdown
-    exDropdown.innerHTML='';
-    REGISTRY[p].forEach(ex=>{
-        const o=document.createElement('option');
-        o.value=ex.key; o.textContent=ex.name;
+    // Heel-slide-only build: keep UI shape, but constrain the protocol to Phase 1.
+    currentPhase = 1;
+    const meta = PHASE_META[1];
+    if (phaseDropdown) {
+        phaseDropdown.innerHTML = '';
+        const phaseOpt = document.createElement('option');
+        phaseOpt.value = '1';
+        phaseOpt.textContent = 'Phase 1';
+        phaseDropdown.appendChild(phaseOpt);
+        phaseDropdown.value = '1';
+    }
+    progressLabel.textContent = `Post-Meniscus · ${meta.label}: ${meta.weeks} · ${meta.desc}`;
+
+    exDropdown.innerHTML = '';
+    REGISTRY[1].forEach(ex => {
+        const o = document.createElement('option');
+        o.value = ex.key;
+        o.textContent = ex.name;
         exDropdown.appendChild(o);
     });
-    loadExercise(REGISTRY[p][0]);
+    exDropdown.value = 'heel_slide';
+    loadExercise(REGISTRY[1][0]);
 }
 
 function loadExercise(ex){
-    currentEx=ex;
+    // Heel-slide-only build: any request resolves to Supine Heel Slide.
+    currentPhase = 1;
+    currentEx = REGISTRY[1][0];
+    ex = currentEx;
+    if (exDropdown) exDropdown.value = 'heel_slide';
     // Update exercise card
-    exCardName.textContent=ex.name;
-    exCardDesc.textContent=ex.desc;
-    exCardReps.textContent=`${repCount}/${targetReps}`;
-    exCardSets.textContent=`${setCount}/${targetSets}`;
-    if(exThumb) exThumb.textContent=ex.thumb||'🦵';
+    exCardName.textContent = ex.name;
+    exCardDesc.textContent = ex.desc;
+    exCardReps.textContent = `${repCount}/${targetReps}`;
+    exCardSets.textContent = `${setCount}/${targetSets}`;
+    if(exThumb) exThumb.textContent = ex.thumb || '🦵';
     // Reset cal
     calState='idle'; calStep=0; resetCalRing();
     btnCal.textContent='START CALIBRATION';
@@ -808,6 +1952,9 @@ function runAutoCal(angle,kx,ky){
 
 function captureCal(angle){
     resetCalRing();
+    if (!targetLimbProfile && targetProfileSamples.length >= TARGET_PROFILE_MIN_SAMPLES) {
+        finalizeTargetLimbProfile();
+    }
     const ex=currentEx;
     if(calStep===0){
         if(!ex.calBoth){
@@ -835,6 +1982,9 @@ function captureCal(angle){
 }
 
 function finishCal(){
+    if (!targetLimbProfile && targetProfileSamples.length >= TARGET_PROFILE_MIN_SAMPLES) {
+        finalizeTargetLimbProfile();
+    }
     btnCal.textContent='RECALIBRATE';
     updateStatus('ACTIVE','active');
     const ex=currentEx;
@@ -847,20 +1997,12 @@ function finishCal(){
 // CALIBRATION BUTTON
 btnCal.addEventListener('click',()=>{
     if(!currentEx)return;
+    beginMotionObservation();
     calStep=0; resetCalRing(); lastSpoken='';
-    const ex=currentEx;
-    if(!ex.calBoth||ex.legRaise){
-        calState='waiting_pos1';
-        speak('Hold your start position still for 3 seconds.');
-    } else if(ex.peakContracted){
-        calState='waiting_pos1';
-        speak('Straighten your leg fully and hold still for 3 seconds.');
-    } else {
-        calState='waiting_pos1';
-        speak('Hold your start position still for 3 seconds.');
-    }
-    btnCal.textContent='HOLD START POSITION…';
-    updateStatus('CALIBRATING','cal');
+    calState='motion_observe';
+    speak('Move your working leg slowly once so I can identify it.');
+    btnCal.textContent='IDENTIFYING WORKING LEG…';
+    updateStatus('IDENTIFYING LEG','cal');
 });
 
 btnApply.addEventListener('click',()=>{readInputs();resetSession();});
@@ -1027,20 +2169,57 @@ function onResults(results){
     if(!results.poseLandmarks)return;
     frameCnt++;
 
+    const resultNow = performance.now();
+    if (lastPoseResultAt) {
+        const dt = Math.max(1, resultNow - lastPoseResultAt);
+        lastPoseResultDelta = dt;
+        const fps = 1000 / dt;
+        poseFpsEMA = poseFpsEMA ? (poseFpsEMA * 0.85 + fps * 0.15) : fps;
+    }
+    lastPoseResultAt = resultNow;
+
     ctx.save();
     ctx.clearRect(0,0,canvasEl.width,canvasEl.height);
     ctx.drawImage(results.image,0,0,canvasEl.width,canvasEl.height);
 
     const lm=results.poseLandmarks;
 
-    // Draw the full raw skeleton very faintly, then draw the trusted working leg boldly.
-    drawConnectors(ctx,lm,POSE_CONNECTIONS,{color:'rgba(41,182,246,0.10)',lineWidth:1});
-    drawLandmarks(ctx,lm,{color:'rgba(41,182,246,0.14)',lineWidth:1,radius:2});
-
     if(!currentEx){ ctx.restore(); return; }
+
+    if (calState === 'motion_observe') {
+        const decidedLeg = collectMotionLockFrame(lm);
+        // Heel-slide-only build: do not draw raw full-body skeleton during motion observation.
+        // The UI should show only the trusted target limb once identified.
+        updateTrackingQualityUI(50, motionLockReason);
+        debugLastDecision = `motion lock · ${motionLockReason}`;
+        showSignalToast(false);
+        ctx.restore();
+        if (!decidedLeg) return;
+
+        // Once the working limb is identified, continue into normal calibration using that physical limb.
+        resetKF();
+        lockedLeg = decidedLeg;
+        calState = 'waiting_pos1';
+        btnCal.textContent = 'HOLD START POSITION…';
+        updateStatus('CALIBRATING','cal');
+        speak('Working leg identified. Hold your start position still.');
+        return;
+    }
 
     const quality = evaluateTrackingQuality(lm);
     const acceptFrame = quality.ok;
+    const drawFrame = quality.score >= DRAW_QUALITY_MIN;
+    lastFrameAccepted = acceptFrame;
+    debugRawAngle = Number.isFinite(quality.rawAngle) ? quality.rawAngle : null;
+    if (acceptFrame) debugAcceptedFrames++;
+    else debugRejectedFrames++;
+    const matchText = Number.isFinite(quality.targetMatch) ? ` · match ${Math.round(quality.targetMatch)}%` : '';
+    debugLastDecision = acceptFrame
+        ? `accepted · ${lockedLeg} limb${matchText}`
+        : `${quality.reason} · ${lockedLeg} limb${matchText}`;
+
+    // Heel-slide-only build: hide the raw full-body skeleton.
+    // Draw only the trusted hip→knee→ankle target chain after validation.
 
     if (acceptFrame) {
         badTrackingFrames = 0;
@@ -1048,27 +2227,62 @@ function onResults(results){
     } else {
         badTrackingFrames++;
         goodTrackingFrames = Math.max(0, goodTrackingFrames - 1);
+        if (badTrackingFrames >= STALE_POSE_CLEAR_FRAMES) {
+            lastGoodPts = null;
+            lastGoodAngle = null;
+        }
     }
 
     updateTrackingQualityUI(quality.score, quality.reason);
-    showSignalToast(badTrackingFrames >= SIG_FR);
+    if (acceptFrame) showSignalToast(false);
+    else showSignalToast(quality.score < DRAW_QUALITY_MIN || badTrackingFrames >= SIG_FR);
 
     // If the frame is not trustworthy, keep last good points instead of letting joints teleport.
     let pts = null;
     let angle = lastGoodAngle;
-    const prevAngleForVelocity = lastGoodAngle;
-
     if (acceptFrame) {
+        const rawPts = getWorkingLegPoints(lm, false);
         pts = getWorkingLegPoints(lm, true);
-        const measuredAngle = angle3(pts.hip, pts.knee, pts.ankle);
-        angle = Math.round(angleFilter.filter(measuredAngle));
-        lastGoodPts = pts;
-        lastGoodAngle = angle;
-    } else if (lastGoodPts) {
-        pts = lastGoodPts;
+        pts = applyTrustedKalman(pts, rawPts, quality);
+
+        const clinicalTrusted = pts.clinicalTrusted !== false;
+
+        if (clinicalTrusted) {
+            if ((calState === 'waiting_pos1' || calState === 'waiting_pos2') && quality.score >= CALIBRATION_QUALITY_MIN) {
+                collectTargetLimbSample(pts, lockedLeg);
+                if (!targetLimbProfile && targetProfileSamples.length >= TARGET_PROFILE_MIN_SAMPLES) {
+                    finalizeTargetLimbProfile();
+                }
+            }
+
+            const measuredAngle = angle3(pts.hip, pts.knee, pts.ankle);
+            const nowForTune = performance.now();
+            const dtForTune = lastVelT ? Math.max(0.001, (nowForTune - lastVelT) / 1000) : 0.033;
+            const rawVelForTune = lastGoodAngle !== null ? Math.abs(measuredAngle - lastGoodAngle) / dtForTune : 0;
+            tuneFiltersForMotion(rawVelForTune);
+
+            angle = Math.round(angleFilter.filter(measuredAngle));
+            debugSmoothAngle = angle;
+            updateVelocityFromAngle(angle);
+            lastGoodPts = pts;
+            lastGoodAngle = angle;
+            lastGoodSegmentLengths = {
+                hk: dist2(pts.hip, pts.knee),
+                ka: dist2(pts.knee, pts.ankle),
+                kh: pts.heel ? dist2(pts.knee, pts.heel) : dist2(pts.knee, pts.ankle),
+                ah: pts.heel ? dist2(pts.ankle, pts.heel) : 0
+            };
+            lastKneeToAnkleVec = { x: pts.ankle.x - pts.knee.x, y: pts.ankle.y - pts.knee.y };
+        } else {
+            angle = lastGoodAngle;
+            debugSmoothAngle = Number.isFinite(lastGoodAngle) ? lastGoodAngle : null;
+            updateTrackingQualityUI(Math.min(quality.score, 68), `tracking uncertain: ${lastUncertainReason}`);
+            showSignalToast(false);
+        }
     }
 
-    if (pts) drawSmoothedWorkingLeg(pts);
+    // Do not draw stale/invalid points. If quality is bad, show only the camera + signal toast.
+    if (pts && drawFrame) drawSmoothedWorkingLeg(pts);
 
     const fHip = pts?.hip;
     const fKnee = pts?.knee;
@@ -1079,7 +2293,7 @@ function onResults(results){
     const ky = (fKnee?.y ?? 0.5) * canvasEl.height;
 
     if(calState==='waiting_pos1'||calState==='waiting_pos2'){
-        if(pts && quality.score >= 58) drawCalRing(kx,ky);
+        if(pts && quality.score >= DRAW_QUALITY_MIN) drawCalRing(kx,ky);
     }
     ctx.restore();
 
@@ -1087,12 +2301,29 @@ function onResults(results){
         if(!DEV_MODE) return;
     }
 
+    // Phase 1.2.7 clinical safety gate: if ankle is virtual/questionable, freeze ROM/reps/velocity.
+    if (pts?.clinicalTrusted === false) {
+        if (calState==='waiting_pos1' || calState==='waiting_pos2') {
+            updateStatus('TRACKING UNCERTAIN','warn');
+            resetCalRing();
+        } else if (calState === 'ready') {
+            updateStatus('TRACKING UNCERTAIN','warn');
+        }
+        if(!DEV_MODE) return;
+    }
+
     // Confidence gate: for calibration/exercise, use quality score instead of raw visibility only.
     if(!acceptFrame){
         if (calState==='waiting_pos1' || calState==='waiting_pos2') {
-            updateStatus('TRACKING UNSTABLE','warn');
+            updateStatus('WAITING FULL LEG','warn');
             resetCalRing();
         }
+        if(!DEV_MODE) return;
+    }
+
+    if (trackingUncertain && calState === 'ready') {
+        updateTrackingQualityUI(Math.min(lastTrackingScore, 62), lastUncertainReason || 'tracking uncertain');
+        updateStatus('TRACKING UNCERTAIN','warn');
         if(!DEV_MODE) return;
     }
 
@@ -1122,8 +2353,8 @@ function onResults(results){
 
     // Calibration only counts down when tracking is stable for several frames.
     if(calState==='waiting_pos1'||calState==='waiting_pos2'){
-        if (quality.score < 65 || goodTrackingFrames < 8) {
-            updateStatus('HOLD STILL','cal');
+        if (quality.score < CALIBRATION_QUALITY_MIN || goodTrackingFrames < 8) {
+            updateStatus('WAITING FULL LEG','cal');
             resetCalRing();
             return;
         }
@@ -1165,19 +2396,6 @@ function onResults(results){
 
     updateHistoryWarnings();
 
-    // Velocity: compare current smoothed angle against previous angle before updating.
-    const now=performance.now();
-    const dt=(now-lastVelT)/1000;
-    if(dt>0.18){
-        const delta = prevAngleForVelocity !== null ? Math.abs(angle - prevAngleForVelocity) : 0;
-        const instantVel = Math.abs(delta / dt);
-        velHist.push(velocityFilter.filter(instantVel));
-        if(velHist.length>6)velHist.shift();
-        const avg=velHist.reduce((a,b)=>a+b,0)/velHist.length;
-        updateVelBand(avg);
-        lastVelT=now;
-    }
-
     // Extensor lag
     if(currentEx.lagThr&&phase==='straight'&&!currentEx.legRaise){
         if(angle<currentEx.lagThr){
@@ -1197,6 +2415,255 @@ function onResults(results){
     runPhase(angle,hipFlex);
 }
 
+
+// ================================================================
+// PHASE 1.2 — SOURCE MANAGER + PERCEPTION DEBUG HARNESS
+// ================================================================
+function formatSeconds(seconds) {
+    if (!Number.isFinite(seconds)) return '—';
+    const min = Math.floor(seconds / 60);
+    const sec = (seconds % 60).toFixed(2).padStart(5, '0');
+    return `${min}:${sec}`;
+}
+
+function resetPerceptionDebugCounters() {
+    debugAcceptedFrames = 0;
+    debugRejectedFrames = 0;
+    debugRawAngle = null;
+    debugSmoothAngle = null;
+    debugLastDecision = 'reset';
+    poseFpsEMA = 0;
+    lastPoseResultAt = 0;
+    lastPoseSendAt = 0;
+    updateDebugPanel();
+}
+
+function resetSourceTrackingState(label = 'READY') {
+    resetTargetLimbProfile('source reset');
+    calState = 'idle';
+    calStep = 0;
+    resetCalRing();
+    resetKF();
+    resetPerceptionDebugCounters();
+    velocityAngleLast = null;
+    velocityTimeLast = null;
+    velocityDebugLast = 0;
+    btnCal.textContent = 'START CALIBRATION';
+    updateStatus(label, label === 'READY' ? 'ready' : 'cal');
+    showSignalToast(false);
+}
+
+function updateSourceButtons() {
+    sourceCameraBtn?.classList.toggle('active', activeSourceMode === 'camera');
+    sourceTestVideoBtn?.classList.toggle('active', activeSourceMode === 'test-video');
+    document.body.dataset.sourceMode = activeSourceMode === 'camera' ? 'camera' : 'video';
+    if (dbgSource) dbgSource.textContent = activeSourceMode === 'camera' ? 'Camera' : 'Test Video';
+}
+
+function updateDebugPanel() {
+    if (!debugPanel) return;
+    const now = performance.now();
+    const inferenceAge = lastPoseResultAt ? Math.round(now - lastPoseResultAt) + 'ms' : '—';
+    if (dbgSource) dbgSource.textContent = activeSourceMode === 'camera' ? 'Camera' : 'Test Video';
+    if (dbgPoseFps) dbgPoseFps.textContent = poseFpsEMA ? poseFpsEMA.toFixed(1) : '—';
+    if (dbgInferenceAge) dbgInferenceAge.textContent = inferenceAge;
+    if (dbgRawAngle) dbgRawAngle.textContent = Number.isFinite(debugRawAngle) ? Math.round(debugRawAngle) + '°' : '—';
+    if (dbgSmoothAngle) dbgSmoothAngle.textContent = Number.isFinite(debugSmoothAngle) ? Math.round(debugSmoothAngle) + '°' : '—';
+    if (dbgFrames) dbgFrames.textContent = `${debugAcceptedFrames} / ${debugRejectedFrames}`;
+    if (dbgReason) {
+        const motionText = motionLockSource && motionLockSource !== 'manual'
+            ? ` · ${motionLockSource} · L${Math.round(motionLockScores.left)} R${Math.round(motionLockScores.right)}`
+            : '';
+        const ankleText = Number.isFinite(lastAnkleIntegrityScore) && lastAnkleIntegrityScore > 0
+            ? ` · ankle ${lastAnkleIntegrityScore}% ${ankleIntegrityState}`
+            : '';
+        dbgReason.textContent = (debugLastDecision || '—') + motionText + ankleText;
+    }
+    if (dbgVideoTime) {
+        if (activeSourceMode === 'test-video' && videoEl.duration) {
+            dbgVideoTime.textContent = `${formatSeconds(videoEl.currentTime)} / ${formatSeconds(videoEl.duration)}`;
+        } else {
+            dbgVideoTime.textContent = 'live';
+        }
+    }
+}
+
+setInterval(updateDebugPanel, 250);
+
+async function sendPoseFrame(sourceEl) {
+    if (!sourceEl || inferenceBusy) return;
+    if (sourceEl.readyState < 2) return;
+
+    inferenceBusy = true;
+    lastPoseSendAt = performance.now();
+    try {
+        await pose.send({ image: sourceEl });
+    } catch (err) {
+        console.warn('Pose send failed:', err);
+    } finally {
+        inferenceBusy = false;
+    }
+}
+
+function stopTestVideoLoop() {
+    if (testVideoRAF) {
+        cancelAnimationFrame(testVideoRAF);
+        testVideoRAF = null;
+    }
+}
+
+function startTestVideoLoop() {
+    stopTestVideoLoop();
+    const loop = async () => {
+        if (activeSourceMode !== 'test-video') return;
+        const now = performance.now();
+        if (!videoEl.paused && !videoEl.ended && now - lastTestPoseSend >= TEST_VIDEO_INFERENCE_MS) {
+            lastTestPoseSend = now;
+            await sendPoseFrame(videoEl);
+        }
+        updateDebugPanel();
+        testVideoRAF = requestAnimationFrame(loop);
+    };
+    testVideoRAF = requestAnimationFrame(loop);
+}
+
+function stopCameraSource() {
+    try {
+        if (cameraController && typeof cameraController.stop === 'function') cameraController.stop();
+    } catch (err) {
+        console.warn('Camera stop failed:', err);
+    }
+    cameraController = null;
+
+    try {
+        const stream = videoEl.srcObject;
+        if (stream && typeof stream.getTracks === 'function') {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    } catch (err) {
+        console.warn('Camera track stop failed:', err);
+    }
+}
+
+async function startCameraSource() {
+    stopTestVideoLoop();
+    if (testVideoObjectURL) {
+        URL.revokeObjectURL(testVideoObjectURL);
+        testVideoObjectURL = null;
+    }
+    videoEl.pause?.();
+    videoEl.removeAttribute('src');
+    videoEl.srcObject = null;
+    videoEl.load?.();
+
+    cameraController = new Camera(videoEl, {
+        onFrame: async () => {
+            if (activeSourceMode !== 'camera') return;
+            await sendPoseFrame(videoEl);
+        },
+        width: 640,
+        height: 480,
+    });
+    await cameraController.start();
+}
+
+async function setSourceMode(mode) {
+    activeSourceMode = mode === 'test-video' ? 'test-video' : 'camera';
+    updateSourceButtons();
+    resetSourceTrackingState(activeSourceMode === 'camera' ? 'READY' : 'TEST VIDEO');
+
+    if (activeSourceMode === 'camera') {
+        if (sourceNote) sourceNote.textContent = 'Camera mode active. Press D to toggle debug metrics.';
+        await startCameraSource();
+    } else {
+        stopCameraSource();
+        stopTestVideoLoop();
+        videoEl.srcObject = null;
+        if (sourceNote) sourceNote.textContent = 'Test Video mode active. Upload a video, then play, pause, restart, or frame-step.';
+        updateStatus('TEST VIDEO', 'cal');
+    }
+}
+
+async function loadTestVideoFile(file) {
+    if (!file) return;
+    activeSourceMode = 'test-video';
+    updateSourceButtons();
+    stopCameraSource();
+    stopTestVideoLoop();
+
+    if (testVideoObjectURL) URL.revokeObjectURL(testVideoObjectURL);
+    testVideoObjectURL = URL.createObjectURL(file);
+
+    videoEl.srcObject = null;
+    videoEl.src = testVideoObjectURL;
+    videoEl.muted = true;
+    videoEl.loop = false;
+    videoEl.playbackRate = parseFloat(videoSpeedSelect?.value || '1') || 1;
+
+    resetSourceTrackingState('TEST VIDEO');
+    if (sourceNote) sourceNote.textContent = `Loaded: ${file.name}. This file is your repeatability baseline.`;
+
+    await new Promise(resolve => {
+        if (videoEl.readyState >= 1) return resolve();
+        videoEl.onloadedmetadata = () => resolve();
+    });
+
+    canvasEl.width = videoEl.videoWidth || 640;
+    canvasEl.height = videoEl.videoHeight || 480;
+
+    startTestVideoLoop();
+    await videoEl.play().catch(() => {});
+    await sendPoseFrame(videoEl);
+}
+
+async function stepTestVideoFrame() {
+    if (activeSourceMode !== 'test-video' || !videoEl.src) return;
+    videoEl.pause();
+    const duration = Number.isFinite(videoEl.duration) ? videoEl.duration : Infinity;
+    videoEl.currentTime = Math.min(duration, videoEl.currentTime + (1 / TEST_VIDEO_FPS));
+    await new Promise(resolve => {
+        const done = () => { videoEl.removeEventListener('seeked', done); resolve(); };
+        videoEl.addEventListener('seeked', done, { once: true });
+        setTimeout(done, 120);
+    });
+    await sendPoseFrame(videoEl);
+    updateDebugPanel();
+}
+
+function initInputSourceUI() {
+    sourceCameraBtn?.addEventListener('click', () => setSourceMode('camera'));
+    sourceTestVideoBtn?.addEventListener('click', () => setSourceMode('test-video'));
+    testVideoFileInput?.addEventListener('change', e => loadTestVideoFile(e.target.files?.[0]));
+    videoPlayBtn?.addEventListener('click', async () => {
+        if (activeSourceMode !== 'test-video') await setSourceMode('test-video');
+        await videoEl.play().catch(() => {});
+        startTestVideoLoop();
+    });
+    videoPauseBtn?.addEventListener('click', () => videoEl.pause());
+    videoRestartBtn?.addEventListener('click', async () => {
+        if (activeSourceMode !== 'test-video' || !videoEl.src) return;
+        videoEl.pause();
+        videoEl.currentTime = 0;
+        resetSourceTrackingState('TEST VIDEO');
+        await sendPoseFrame(videoEl);
+    });
+    videoStepBtn?.addEventListener('click', stepTestVideoFrame);
+    videoSpeedSelect?.addEventListener('change', () => {
+        videoEl.playbackRate = parseFloat(videoSpeedSelect.value) || 1;
+    });
+    debugToggleBtn?.addEventListener('click', () => {
+        debugPanel?.classList.toggle('collapsed');
+        if (debugToggleBtn) debugToggleBtn.textContent = debugPanel?.classList.contains('collapsed') ? 'Show Debug Metrics' : 'Hide Debug Metrics';
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key.toLowerCase() !== 'd') return;
+        if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+        debugToggleBtn?.click();
+    });
+    updateSourceButtons();
+    updateDebugPanel();
+}
+
 // ================================================================
 // MEDIAPIPE
 // ================================================================
@@ -1211,7 +2678,9 @@ pose.onResults(onResults);
 
 window.addEventListener('load',async()=>{
     loadPhase(1);
+    setWorkingLeg(workingLeg);
     initExecutivePrescriptionUI();
+    initInputSourceUI();
 
     // DEV MODE: start mock data ticker and ensure signal overlay stays hidden
     if (DEV_MODE) {
@@ -1220,11 +2689,7 @@ window.addEventListener('load',async()=>{
         updateStatus('DEV MODE', 'active');
     }
 
-    const camera=new Camera(videoEl,{
-        onFrame:async()=>{if(videoEl.readyState===4)await pose.send({image:videoEl});},
-        width:640,height:480,
-    });
-    await camera.start();
+    await setSourceMode('camera');
 });
 
 // ── Accordion toggle ─────────────────────────────────────────

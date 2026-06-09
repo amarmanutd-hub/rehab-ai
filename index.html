@@ -251,6 +251,48 @@
         </div>
       </section>
 
+      <!-- PERCEPTION DEBUG / TEST VIDEO HARNESS -->
+      <section class="dash-card source-card" id="source-card">
+        <div class="card-title">INPUT SOURCE</div>
+
+        <div class="source-toggle" role="group" aria-label="Input source">
+          <button class="source-btn active" id="source-camera" type="button">Camera</button>
+          <button class="source-btn" id="source-test-video" type="button">Test Video</button>
+        </div>
+
+        <div class="test-video-controls" id="test-video-controls">
+          <label class="upload-btn" for="test-video-file">Upload Test Video</label>
+          <input id="test-video-file" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" />
+
+          <div class="video-control-grid">
+            <button class="mini-btn" id="video-play" type="button">Play</button>
+            <button class="mini-btn" id="video-pause" type="button">Pause</button>
+            <button class="mini-btn" id="video-restart" type="button">Restart</button>
+            <button class="mini-btn" id="video-step" type="button">Frame +</button>
+          </div>
+
+          <select class="sel-input source-speed" id="video-speed" aria-label="Video playback speed">
+            <option value="0.5">0.5× Debug</option>
+            <option value="1" selected>1× Normal</option>
+          </select>
+
+          <div class="source-note" id="source-note">Camera mode active. Press D to toggle debug metrics.</div>
+        </div>
+
+        <button class="debug-toggle" id="debug-toggle" type="button">Show Debug Metrics</button>
+
+        <div class="debug-panel collapsed" id="debug-panel">
+          <div class="debug-row"><span>Source</span><strong id="dbg-source">Camera</strong></div>
+          <div class="debug-row"><span>Pose FPS</span><strong id="dbg-pose-fps">—</strong></div>
+          <div class="debug-row"><span>Inference Age</span><strong id="dbg-inference-age">—</strong></div>
+          <div class="debug-row"><span>Raw Knee Angle</span><strong id="dbg-raw-angle">—</strong></div>
+          <div class="debug-row"><span>Smoothed Angle</span><strong id="dbg-smooth-angle">—</strong></div>
+          <div class="debug-row"><span>Accepted / Rejected</span><strong id="dbg-frames">0 / 0</strong></div>
+          <div class="debug-row"><span>Last Decision</span><strong id="dbg-reason">—</strong></div>
+          <div class="debug-row"><span>Video Time</span><strong id="dbg-video-time">—</strong></div>
+        </div>
+      </section>
+
       <!-- EXERCISE PROTOCOL -->
       <section class="dash-card protocol-card acc-card module-card optional-module" id="module-exercise" data-module="exercise">
         <div class="acc-header" data-target="acc-ex">

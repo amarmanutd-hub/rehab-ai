@@ -356,8 +356,15 @@ canvas {
 
   display: block;
   object-fit: contain;
+}
 
+/* Mirror live webcam mode only; keep uploaded test videos normal. */
+body[data-source-mode="camera"] canvas {
   transform: scaleX(-1);
+}
+
+body[data-source-mode="video"] canvas {
+  transform: none;
 }
 
 /* camera corners */
@@ -2508,4 +2515,144 @@ body[data-view-mode="patient"] #btn-test-summary {
     width: auto !important;
     padding: 0 14px 18px;
   }
+}
+
+
+/* ================================================================
+   PHASE 1.2 — TEST VIDEO + PERCEPTION DEBUG HARNESS
+   ================================================================ */
+.source-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 62%);
+}
+
+.source-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.source-btn,
+.mini-btn,
+.debug-toggle,
+.upload-btn {
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-sec);
+  font-family: var(--font);
+  font-size: calc(0.82rem * var(--sidebar-scale));
+  font-weight: 900;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+}
+
+.source-btn {
+  padding: 10px 8px;
+}
+
+.source-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #FFFFFF;
+  border-color: var(--accent);
+}
+
+.test-video-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+#test-video-file {
+  display: none;
+}
+
+.upload-btn {
+  display: block;
+  padding: 10px 12px;
+  color: var(--primary-dark);
+}
+
+.video-control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+
+.mini-btn {
+  padding: 9px 6px;
+  min-height: 34px;
+}
+
+.source-speed {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.source-note {
+  color: var(--text-dim);
+  font-size: calc(0.76rem * var(--sidebar-scale));
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.debug-toggle {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent), transparent 35%);
+}
+
+.debug-panel {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  overflow: hidden;
+  transition: max-height 0.22s ease, opacity 0.18s ease, margin 0.18s ease;
+}
+
+.debug-panel.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.debug-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.debug-row span {
+  color: var(--text-dim);
+  font-size: calc(0.72rem * var(--sidebar-scale));
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.debug-row strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: calc(0.78rem * var(--sidebar-scale));
+  font-weight: 900;
+  text-align: right;
+}
+
+.source-btn:hover,
+.mini-btn:hover,
+.debug-toggle:hover,
+.upload-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
